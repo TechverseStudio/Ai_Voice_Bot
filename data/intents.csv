@@ -86,3 +86,70 @@ Can you connect me to a human,HUMAN_SUPPORT
 I need help from a support agent,HUMAN_SUPPORT
 Please let me talk to someone,HUMAN_SUPPORT
 Transfer my call to customer support,HUMAN_SUPPORT
+
+मला माझ्या ऑर्डरची माहिती हवी आहे,ORDER_STATUS
+माझी ऑर्डर कुठे आहे,ORDER_STATUS
+माझ्या ऑर्डरचा स्टेटस काय आहे,ORDER_STATUS
+माझे पार्सल कधी येईल,ORDER_STATUS
+माझी डिलिव्हरी तपासा,ORDER_STATUS
+मला ऑर्डर ट्रॅक करायची आहे,ORDER_STATUS
+
+मला हे उत्पादन खरेदी करायचे आहे,PURCHASE_INTENT
+मला हा प्लॅन घ्यायचा आहे,PURCHASE_INTENT
+मला प्रीमियम प्लॅन खरेदी करायचा आहे,PURCHASE_INTENT
+मला तुमची सेवा घ्यायची आहे,PURCHASE_INTENT
+
+मला उत्पादनाची किंमत जाणून घ्यायची आहे,PRODUCT_INQUIRY
+या प्लॅनची किंमत किती आहे,PRODUCT_INQUIRY
+तुमच्या सेवांची माहिती द्या,PRODUCT_INQUIRY
+प्रीमियम प्लॅनबद्दल माहिती हवी आहे,PRODUCT_INQUIRY
+
+मला माझे पैसे परत हवे आहेत,REFUND_REQUEST
+माझ्या ऑर्डरचा रिफंड हवा आहे,REFUND_REQUEST
+मला रिफंड कसा मिळेल,REFUND_REQUEST
+
+मला तक्रार करायची आहे,COMPLAINT
+तुमच्या सेवेत समस्या आहे,COMPLAINT
+मला तुमच्या सेवेबद्दल तक्रार आहे,COMPLAINT
+
+मला माणसाशी बोलायचे आहे,HUMAN_SUPPORT
+मला कस्टमर सपोर्टशी बोलायचे आहे,HUMAN_SUPPORT
+माझा कॉल एजंटकडे ट्रान्सफर करा,HUMAN_SUPPORT
+
+मला अपॉइंटमेंट बुक करायची आहे,BOOK_APPOINTMENT
+मला भेटीची वेळ ठरवायची आहे,BOOK_APPOINTMENT
+उद्यासाठी अपॉइंटमेंट हवी आहे,BOOK_APPOINTMENT
+
+मला माझी अपॉइंटमेंट रद्द करायची आहे,CANCEL_APPOINTMENT
+माझी बुकिंग रद्द करा,CANCEL_APPOINTMENT
+
+मुझे अपने ऑर्डर की जानकारी चाहिए,ORDER_STATUS
+मेरा ऑर्डर कहाँ है,ORDER_STATUS
+मेरे ऑर्डर का स्टेटस क्या है,ORDER_STATUS
+मैं अपना ऑर्डर ट्रैक करना चाहता हूँ,ORDER_STATUS
+
+मुझे यह प्रोडक्ट खरीदना है,PURCHASE_INTENT
+मुझे प्रीमियम प्लान खरीदना है,PURCHASE_INTENT
+मैं आपकी सेवा लेना चाहता हूँ,PURCHASE_INTENT
+
+इस प्रोडक्ट की कीमत कितनी है,PRODUCT_INQUIRY
+मुझे प्रीमियम प्लान के बारे में जानकारी चाहिए,PRODUCT_INQUIRY
+आपकी सर्विस की कीमत क्या है,PRODUCT_INQUIRY
+
+मुझे अपना पैसा वापस चाहिए,REFUND_REQUEST
+मुझे रिफंड चाहिए,REFUND_REQUEST
+मेरे ऑर्डर का पैसा वापस चाहिए,REFUND_REQUEST
+
+मुझे शिकायत करनी है,COMPLAINT
+आपकी सर्विस में समस्या है,COMPLAINT
+मैं आपकी सेवा से खुश नहीं हूँ,COMPLAINT
+
+मुझे किसी इंसान से बात करनी है,HUMAN_SUPPORT
+मुझे कस्टमर सपोर्ट से बात करनी है,HUMAN_SUPPORT
+मेरा कॉल किसी एजेंट को ट्रांसफर करें,HUMAN_SUPPORT
+
+मुझे अपॉइंटमेंट बुक करनी है,BOOK_APPOINTMENT
+मुझे कल के लिए अपॉइंटमेंट चाहिए,BOOK_APPOINTMENT
+
+मुझे अपनी अपॉइंटमेंट कैंसल करनी है,CANCEL_APPOINTMENT
+मेरी बुकिंग कैंसल कर दीजिए,CANCEL_APPOINTMENT

@@ -1,7 +1,8 @@
 """
-Complete local voice-agent pipeline.
+Complete local multilingual voice-agent pipeline.
 
-Microphone -> STT -> Intent -> Decision -> Response -> TTS -> Playback
+Microphone -> STT -> Language Detection -> Intent -> Decision
+-> Response -> TTS -> Playback
 """
 
 import winsound
@@ -24,7 +25,7 @@ OUTPUT_AUDIO = "agent_response.wav"
 
 
 class VoiceAgent:
-    """Complete voice interaction pipeline."""
+    """Complete multilingual voice interaction pipeline."""
 
     def __init__(self):
         self.stt = SpeechToText()
@@ -62,38 +63,48 @@ class VoiceAgent:
         # 1. Record customer voice
         self.record_voice()
 
-        # 2. Speech-to-text
+        # 2. Speech-to-text + language detection
         print("\n📝 Converting speech to text...")
-        text = self.stt.transcribe(INPUT_AUDIO)
+
+        stt_result = self.stt.transcribe(INPUT_AUDIO)
+
+        text = stt_result["text"]
+        language = stt_result["language"]
 
         print("Customer:", text)
+        print("Detected language:", language)
 
         # 3. Intent classification
         print("\n🧠 Detecting intent...")
+
         intent = self.classifier.predict(text)
 
         print("Intent:", intent)
 
         # 4. Decision making
         print("\n⚙️ Selecting action...")
+
         action = self.decision_engine.decide(intent)
 
         print("Action:", action)
 
         # 5. Generate response
         print("\n💬 Generating response...")
+
         response = self.response_generator.generate(
             intent,
             action,
+            language,
         )
 
         print("Agent:", response)
 
-        # 6. Text-to-speech
+        # 6. Text-to-speech in the detected language
         print("\n🔊 Generating voice response...")
+
         self.tts.synthesize(
             text=response,
-            language_code="en-IN",
+            language_code=language,
             output_file=OUTPUT_AUDIO,
         )
 
@@ -101,6 +112,7 @@ class VoiceAgent:
 
         # 7. Automatically play response
         print("\n🔊 Playing response...")
+
         winsound.PlaySound(
             OUTPUT_AUDIO,
             winsound.SND_FILENAME,
@@ -108,7 +120,7 @@ class VoiceAgent:
 
         print("Playback completed.")
 
-        return text, intent, action, response
+        return text, language, intent, action, response
 
 
 if __name__ == "__main__":

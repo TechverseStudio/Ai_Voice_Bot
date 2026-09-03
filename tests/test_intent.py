@@ -3,12 +3,14 @@ from models.intent_classifier import IntentClassifier
 
 classifier = IntentClassifier()
 
-
 test_messages = [
-    "I want to buy your premium plan",
+    "मला माझ्या ऑर्डरची माहिती हवी आहे.",
+    "माझी ऑर्डर कुठे आहे?",
+    "मला प्रीमियम प्लॅन खरेदी करायचा आहे.",
+    "मुझे अपना पैसा वापस चाहिए",
+    "मुझे किसी इंसान से बात करनी है",
+    "I want to buy the premium plan",
     "Where is my package?",
-    "I am very unhappy with your service",
-    "Please connect me to a human",
 ]
 
 
@@ -17,4 +19,3 @@ for message in test_messages:
 
     print(f"\nCustomer: {message}")
     print(f"Predicted intent: {intent}")
-    
