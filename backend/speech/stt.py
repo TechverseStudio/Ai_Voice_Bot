@@ -1,11 +1,25 @@
-""" Speech-to-text service.
-Responsible for converting customer audio into text."""
+"""
+Speech-to-Text service using Sarvam AI.
+"""
+
+from sarvamai import SarvamAI
+
+from backend.config import SARVAM_API_KEY
+
 
 class SpeechToText:
-    """Base interface for sppech -to-text providers."""
+    """Speech-to-text service powered by Sarvam AI."""
 
-    def transcribe(self,audio_data: bytes)-> str:
-        """It is used to convert the audio data into text.
-        this methid will be implemented using an stt provider"""
+    def __init__(self):
+        self.client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
 
-        raise NotImplementedError
+    def transcribe(self, audio_file_path: str) -> str:
+        """Convert an audio file into text using Sarvam AI."""
+
+        with open(audio_file_path, "rb") as audio_file:
+            response = self.client.speech_to_text.transcribe(
+                file=audio_file,
+                model="saaras:v3",
+            )
+
+        return response.transcript
