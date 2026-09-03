@@ -1,0 +1,88 @@
+text,intent
+What products do you offer,PRODUCT_INQUIRY
+Can you tell me about your products,PRODUCT_INQUIRY
+I want to know more about your services,PRODUCT_INQUIRY
+What features does your product have,PRODUCT_INQUIRY
+Tell me about your premium plan,PRODUCT_INQUIRY
+What plans are available,PRODUCT_INQUIRY
+How much does your service cost,PRODUCT_INQUIRY
+What is the price of the premium plan,PRODUCT_INQUIRY
+Can you explain your pricing,PRODUCT_INQUIRY
+How much will this product cost,PRODUCT_INQUIRY
+
+I want to buy this product,PURCHASE_INTENT
+I want to purchase the premium plan,PURCHASE_INTENT
+I am interested in buying your product,PURCHASE_INTENT
+How can I place an order,PURCHASE_INTENT
+I want to purchase a subscription,PURCHASE_INTENT
+I would like to buy this service,PURCHASE_INTENT
+I am ready to buy the product,PURCHASE_INTENT
+Can I purchase this plan,PURCHASE_INTENT
+I want to place an order,PURCHASE_INTENT
+I would like to become a customer,PURCHASE_INTENT
+
+I want to book an appointment,BOOK_APPOINTMENT
+Can I schedule an appointment,BOOK_APPOINTMENT
+I need an appointment tomorrow,BOOK_APPOINTMENT
+Please book an appointment for me,BOOK_APPOINTMENT
+I want to schedule a meeting,BOOK_APPOINTMENT
+Can you schedule a call for me,BOOK_APPOINTMENT
+I would like to book a consultation,BOOK_APPOINTMENT
+Please arrange an appointment,BOOK_APPOINTMENT
+I need to schedule a visit,BOOK_APPOINTMENT
+Can I book a slot for tomorrow,BOOK_APPOINTMENT
+
+I want to cancel my appointment,CANCEL_APPOINTMENT
+Please cancel my booking,CANCEL_APPOINTMENT
+I need to cancel my appointment,CANCEL_APPOINTMENT
+Cancel my scheduled appointment,CANCEL_APPOINTMENT
+I don't want my appointment anymore,CANCEL_APPOINTMENT
+Please remove my appointment,CANCEL_APPOINTMENT
+I need to cancel my booking,CANCEL_APPOINTMENT
+Can you cancel my scheduled meeting,CANCEL_APPOINTMENT
+I want to cancel the appointment,CANCEL_APPOINTMENT
+Please cancel my slot,CANCEL_APPOINTMENT
+
+I have a problem with your service,COMPLAINT
+I want to make a complaint,COMPLAINT
+Your service is not working,COMPLAINT
+I am unhappy with your service,COMPLAINT
+I want to report an issue,COMPLAINT
+The product is not working properly,COMPLAINT
+I am not satisfied with the service,COMPLAINT
+I have an issue with my order,COMPLAINT
+Your service has caused me a problem,COMPLAINT
+I want to report a problem,COMPLAINT
+
+I want a refund,REFUND_REQUEST
+How can I get my money back,REFUND_REQUEST
+I want to request a refund,REFUND_REQUEST
+Please refund my payment,REFUND_REQUEST
+Can I get a refund for my order,REFUND_REQUEST
+I need my payment returned,REFUND_REQUEST
+I want to cancel and get a refund,REFUND_REQUEST
+How do I get my money back,REFUND_REQUEST
+Please process my refund,REFUND_REQUEST
+I would like my money back,REFUND_REQUEST
+
+Where is my order,ORDER_STATUS
+I want to check my order status,ORDER_STATUS
+Can you track my order,ORDER_STATUS
+Where is my package,ORDER_STATUS
+When will my order arrive,ORDER_STATUS
+I have not received my order yet,ORDER_STATUS
+Can you tell me where my order is,ORDER_STATUS
+What is the status of my delivery,ORDER_STATUS
+My order has not arrived,ORDER_STATUS
+Please check my delivery status,ORDER_STATUS
+
+I want to talk to a human,HUMAN_SUPPORT
+Connect me with an agent,HUMAN_SUPPORT
+I need to speak to a person,HUMAN_SUPPORT
+Can I talk to customer support,HUMAN_SUPPORT
+Please transfer me to an agent,HUMAN_SUPPORT
+I want to speak with a representative,HUMAN_SUPPORT
+Can you connect me to a human,HUMAN_SUPPORT
+I need help from a support agent,HUMAN_SUPPORT
+Please let me talk to someone,HUMAN_SUPPORT
+Transfer my call to customer support,HUMAN_SUPPORT
