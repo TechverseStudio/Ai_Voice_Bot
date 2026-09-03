@@ -1,0 +1,18 @@
+# Python 
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+#Enviornment Variable
+.env
+
+
+#IDE 
+.vscode/
+
+#logs
+*.log
+
+# Local Data
+data/*.db
