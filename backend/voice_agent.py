@@ -5,7 +5,7 @@ Microphone -> STT -> Language Detection -> Intent -> Decision
 -> Response -> TTS -> Playback
 """
 
-import winsound
+import platform
 
 import sounddevice as sd
 import soundfile as sf
@@ -113,10 +113,14 @@ class VoiceAgent:
         # 7. Automatically play response
         print("\n🔊 Playing response...")
 
-        winsound.PlaySound(
-            OUTPUT_AUDIO,
-            winsound.SND_FILENAME,
-        )
+        if platform.system() == "Windows":
+            import winsound
+
+            winsound.PlaySound(OUTPUT_AUDIO, winsound.SND_FILENAME)
+        else:
+            audio, sample_rate = sf.read(OUTPUT_AUDIO, dtype="float32")
+            sd.play(audio, sample_rate)
+            sd.wait()
 
         print("Playback completed.")
 

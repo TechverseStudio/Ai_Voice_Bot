@@ -12,6 +12,9 @@ class DecisionEngine:
         """Return an action based on the detected intent."""
 
         decisions = {
+            "DO_NOT_CALL": "STOP_OUTBOUND_CONTACT",
+            "LOCATION_INQUIRY": "PROVIDE_DIRECTIONS",
+            "PRICE_INQUIRY": "PROVIDE_PRICE_INFORMATION",
             "PRODUCT_INQUIRY": "PROVIDE_PRODUCT_INFORMATION",
             "PURCHASE_INTENT": "START_SALES_FLOW",
             "BOOK_APPOINTMENT": "SCHEDULE_APPOINTMENT",

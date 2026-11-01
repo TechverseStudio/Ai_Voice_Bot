@@ -20,6 +20,19 @@ class ResponseGenerator:
                     "Sure, I can help you with information about our "
                     "products and services. What would you like to know?"
                 ),
+                "LOCATION_INQUIRY": (
+                    "I can share the verified route and site location. "
+                    "Would you like me to arrange a site visit?"
+                ),
+                "PRICE_INQUIRY": (
+                    "I can share the indicative price range from our project "
+                    "information. Final pricing and availability must be "
+                    "confirmed by an authorised sales representative."
+                ),
+                "DO_NOT_CALL": (
+                    "Understood. I will mark your number as do not call. "
+                    "Thank you for your time."
+                ),
                 "PURCHASE_INTENT": (
                     "Great! I can help you with your purchase. "
                     "Which product or plan are you interested in?"
@@ -54,6 +67,17 @@ class ResponseGenerator:
                     "नक्की. मी तुम्हाला आमच्या उत्पादनांची आणि "
                     "सेवांची माहिती देऊ शकतो. तुम्हाला काय जाणून घ्यायचे आहे?"
                 ),
+                "LOCATION_INQUIRY": (
+                    "मी सत्यापित लोकेशन आणि रस्त्याची माहिती देऊ शकतो. "
+                    "तुमच्यासाठी साइट व्हिजिट बुक करू का?"
+                ),
+                "PRICE_INQUIRY": (
+                    "मी प्रोजेक्टमधील अंदाजे किमतीची माहिती देऊ शकतो. "
+                    "अंतिम किंमत अधिकृत विक्री प्रतिनिधींकडून निश्चित केली जाईल."
+                ),
+                "DO_NOT_CALL": (
+                    "समजले. मी तुमचा नंबर कॉल करू नये म्हणून नोंदवतो. धन्यवाद."
+                ),
                 "PURCHASE_INTENT": (
                     "नक्की. मी तुम्हाला खरेदी करण्यात मदत करू शकतो. "
                     "तुम्हाला कोणते उत्पादन किंवा प्लॅन घ्यायचा आहे?"
@@ -87,6 +111,17 @@ class ResponseGenerator:
                 "PRODUCT_INQUIRY": (
                     "ज़रूर। मैं आपको हमारे उत्पादों और सेवाओं के बारे में "
                     "जानकारी दे सकता हूँ। आप क्या जानना चाहते हैं?"
+                ),
+                "LOCATION_INQUIRY": (
+                    "मैं सत्यापित लोकेशन और रास्ते की जानकारी दे सकता हूँ। "
+                    "क्या मैं आपके लिए साइट विज़िट बुक करूँ?"
+                ),
+                "PRICE_INQUIRY": (
+                    "मैं प्रोजेक्ट की अनुमानित कीमत बता सकता हूँ। "
+                    "अंतिम कीमत अधिकृत बिक्री प्रतिनिधि से तय होगी।"
+                ),
+                "DO_NOT_CALL": (
+                    "समझ गया। मैं आपका नंबर दोबारा कॉल न करने के लिए दर्ज कर रहा हूँ। धन्यवाद।"
                 ),
                 "PURCHASE_INTENT": (
                     "ज़रूर। मैं आपकी खरीदारी में मदद कर सकता हूँ। "

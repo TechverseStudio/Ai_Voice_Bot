@@ -25,6 +25,10 @@ class TextToSpeech:
         Convert text into speech and save it as an audio file.
         """
 
+        supported_languages = {"en-IN", "hi-IN", "mr-IN", "bn-IN", "ta-IN", "te-IN"}
+        language_code = (
+            language_code if language_code in supported_languages else "en-IN"
+        )
         audio = self.client.text_to_speech.convert(
             text=text,
             model="bulbul:v3",

@@ -1,5 +1,15 @@
+import os
+
+import pytest
+
 from backend.speech.tts import TextToSpeech
 
+
+if os.getenv("RUN_LIVE_SPEECH_TESTS") != "1":
+    pytest.skip(
+        "Set RUN_LIVE_SPEECH_TESTS=1 to run the live TTS test",
+        allow_module_level=True,
+    )
 
 tts = TextToSpeech()
 

@@ -1,0 +1,1476 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Krishna's AI Property | Autonomous Lead Generation Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #0B0F19;
+      --bg-surface: #111827;
+      --bg-surface-elevated: #1F2937;
+      --bg-glass: rgba(17, 24, 39, 0.75);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.3);
+      --text-main: #F9FAFB;
+      --text-muted: #9CA3AF;
+      --text-dim: #6B7280;
+      --accent-indigo: #6366F1;
+      --accent-indigo-hover: #4F46E5;
+      --accent-emerald: #10B981;
+      --accent-emerald-bg: rgba(16, 185, 129, 0.15);
+      --accent-amber: #F59E0B;
+      --accent-amber-bg: rgba(245, 158, 11, 0.15);
+      --accent-rose: #EF4444;
+      --accent-rose-bg: rgba(239, 68, 68, 0.15);
+      --accent-cyan: #06B6D4;
+      --accent-cyan-bg: rgba(6, 182, 212, 0.15);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header & Navigation */
+    header {
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 0.75rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-wrap { display: flex; align-items: center; gap: 0.85rem; }
+    .brand-logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #6366F1, #8B5CF6);
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1.2rem; color: #fff;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    }
+    .brand-title { font-weight: 700; font-size: 1.15rem; letter-spacing: -0.02em; }
+    .brand-subtitle { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+    .system-status-pills { display: flex; gap: 0.5rem; align-items: center; }
+    .status-pill {
+      font-size: 0.75rem; font-weight: 600; padding: 0.35rem 0.75rem;
+      border-radius: 9999px; display: flex; align-items: center; gap: 0.4rem;
+      border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.03);
+    }
+    .status-pill.live { color: #34D399; border-color: rgba(52, 211, 153, 0.3); background: rgba(52, 211, 153, 0.1); }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #34D399; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } 100% { opacity: 1; transform: scale(1); } }
+
+    /* Nav Tabs */
+    .tabs-bar {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 2rem;
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: none; border: none; color: var(--text-muted);
+      font-family: inherit; font-size: 0.88rem; font-weight: 600;
+      padding: 0.9rem 1.1rem; cursor: pointer; border-bottom: 2px solid transparent;
+      display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.02); }
+    .tab-btn.active {
+      color: var(--accent-indigo);
+      border-bottom-color: var(--accent-indigo);
+    }
+    .tab-badge {
+      font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 9999px;
+      background: rgba(99, 102, 241, 0.2); color: #A5B4FC;
+    }
+
+    /* Container */
+    main { flex: 1; padding: 2rem; max-width: 1440px; margin: 0 auto; width: 100%; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Cards & Layout */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+    .grid-analytics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; }
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-card);
+      position: relative;
+    }
+    .card-title {
+      font-size: 1.05rem; font-weight: 700; margin-bottom: 0.35rem; display: flex;
+      justify-content: space-between; align-items: center;
+    }
+    .card-desc { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem; }
+
+    /* Stat Cards */
+    .stat-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      display: flex; flex-direction: column; gap: 0.4rem;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); border-color: rgba(99, 102, 241, 0.3); }
+    .stat-label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat-value { font-size: 1.85rem; font-weight: 800; letter-spacing: -0.03em; }
+    .stat-sub { font-size: 0.75rem; color: var(--text-dim); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      font-family: inherit; font-size: 0.85rem; font-weight: 600;
+      padding: 0.65rem 1.25rem; border-radius: var(--radius-sm);
+      cursor: pointer; border: 1px solid transparent; transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent-indigo); color: #fff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    }
+    .btn-primary:hover { background: var(--accent-indigo-hover); }
+    .btn-secondary { background: var(--bg-surface-elevated); color: var(--text-main); border-color: var(--border-subtle); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.08); }
+    .btn-success { background: var(--accent-emerald); color: #fff; }
+    .btn-danger { background: var(--accent-rose); color: #fff; }
+    .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.78rem; }
+
+    /* Drag & Drop Upload */
+    .upload-zone {
+      border: 2px dashed rgba(99, 102, 241, 0.4);
+      background: rgba(99, 102, 241, 0.03);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 1.5rem;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent-indigo);
+      background: rgba(99, 102, 241, 0.08);
+    }
+    .upload-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+    thead th {
+      background: var(--bg-surface-elevated);
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+    }
+    tbody td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+    /* Badges */
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.25rem 0.65rem; border-radius: 9999px;
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    }
+    .badge-hot { background: var(--accent-rose-bg); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-warm { background: var(--accent-amber-bg); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-cold { background: var(--accent-cyan-bg); color: #38BDF8; border: 1px solid rgba(6, 182, 212, 0.3); }
+    .badge-confirmed { background: var(--accent-emerald-bg); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-dnd { background: rgba(107, 114, 128, 0.2); color: #9CA3AF; border: 1px solid rgba(107, 114, 128, 0.3); }
+    .badge-valid { background: var(--accent-emerald-bg); color: #34D399; }
+    .badge-duplicate { background: var(--accent-amber-bg); color: #FBBF24; }
+    .badge-invalid { background: var(--accent-rose-bg); color: #F87171; }
+    .badge-review { background: rgba(139, 92, 246, 0.2); color: #C4B5FD; }
+
+    /* Form Inputs */
+    .form-group { margin-bottom: 1.1rem; }
+    .form-label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle); color: var(--text-main);
+      border-radius: var(--radius-sm); padding: 0.65rem 0.9rem;
+      font-family: inherit; font-size: 0.85rem; outline: none; transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent-indigo); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center;
+      z-index: 100; padding: 1.5rem;
+    }
+    .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease-out; }
+    .modal-box {
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg); width: 100%; max-width: 800px; max-height: 90vh;
+      display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+    }
+    .modal-header {
+      padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-subtle);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      padding: 1rem 1.5rem; border-top: 1px solid var(--border-subtle);
+      display: flex; justify-content: flex-end; gap: 0.75rem; background: var(--bg-surface-elevated);
+    }
+    .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; }
+
+    /* Live Event Terminal */
+    .terminal-box {
+      background: #06090F;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.78rem;
+      color: #38BDF8;
+      max-height: 320px;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+    .terminal-entry { margin-bottom: 0.35rem; display: flex; gap: 0.5rem; }
+    .terminal-time { color: var(--text-dim); }
+
+    /* Score Bar */
+    .score-bar-bg { width: 100px; height: 8px; background: rgba(255,255,255,0.08); border-radius: 9999px; overflow: hidden; }
+    .score-bar-fill { height: 100%; border-radius: 9999px; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-logo">K</div>
+      <div>
+        <div class="brand-title">Krishna's AI Property</div>
+        <div class="brand-subtitle">Autonomous Lead Generation Engine</div>
+      </div>
+    </div>
+    <div class="system-status-pills">
+      <div class="status-pill live">
+        <div class="pulse-dot"></div> AI Engine Online
+      </div>
+      <div class="status-pill" id="telephony-indicator">
+        Telephony: Ready
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="switchTab('import-tab')">+ Import Contacts</button>
+      <button class="btn btn-primary btn-sm" onclick="openCampaignModal()">+ New Campaign</button>
+    </div>
+  </header>
+
+  <!-- Navigation Bar -->
+  <nav class="tabs-bar">
+    <button class="tab-btn active" onclick="switchTab('dashboard-tab')">📊 Executive Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('import-tab')">📁 Contact Import & Campaigns <span class="tab-badge" id="contact-count-badge">0</span></button>
+    <button class="tab-btn" onclick="switchTab('campaigns-tab')">⚡ AI Calling Engine <span class="tab-badge" id="campaign-count-badge">0</span></button>
+    <button class="tab-btn" onclick="switchTab('leads-tab')">🎯 CRM Leads & Intelligence <span class="tab-badge" id="leads-count-badge">0</span></button>
+    <button class="tab-btn" onclick="switchTab('appointments-tab')">📅 Site Visits Booked <span class="tab-badge" id="appt-count-badge">0</span></button>
+    <button class="tab-btn" onclick="switchTab('studio-tab')">🎙️ Browser Voice Studio</button>
+    <button class="tab-btn" onclick="switchTab('compliance-tab')">🛡️ DND & Compliance</button>
+  </nav>
+
+  <!-- Main Workspaces -->
+  <main>
+
+    <!-- TAB 1: EXECUTIVE DASHBOARD -->
+    <section id="dashboard-tab" class="tab-content active">
+      <div class="card-title" style="margin-bottom: 1.5rem;">
+        <div>
+          <h2>Real-Time Lead Generation Dashboard</h2>
+          <p class="card-desc">Actual pipeline metrics computed from active campaign and call records.</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="refreshAllData()">🔄 Refresh Stats</button>
+      </div>
+
+      <!-- KPI Grid -->
+      <div class="grid-analytics" style="margin-bottom: 2rem;">
+        <div class="stat-card">
+          <span class="stat-label">Total Contacts Uploaded</span>
+          <span class="stat-value" id="kpi-uploaded">0</span>
+          <span class="stat-sub" id="kpi-valid-sub">0 verified eligible</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Calls Connected</span>
+          <span class="stat-value" id="kpi-connected" style="color: #38BDF8;">0</span>
+          <span class="stat-sub" id="kpi-attempted-sub">0 total attempts</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Qualified Leads</span>
+          <span class="stat-value" id="kpi-qualified" style="color: #34D399;">0</span>
+          <span class="stat-sub" id="kpi-conversion-sub">0.0% conversion rate</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Hot Leads</span>
+          <span class="stat-value" id="kpi-hot" style="color: #F87171;">0</span>
+          <span class="stat-sub">High purchase intent</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Site Visits Confirmed</span>
+          <span class="stat-value" id="kpi-visits" style="color: #FBBF24;">0</span>
+          <span class="stat-sub">Validated slots booked</span>
+        </div>
+      </div>
+
+      <!-- Live Pipeline & Terminal -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Live Autonomous Call Stream</div>
+          <div class="card-desc">Real-time telemetry of calls, AI conversations, and instant qualification.</div>
+          <div class="terminal-box" id="live-terminal">
+            <div class="terminal-entry"><span class="terminal-time">[System]</span> Engine standing by. Ready for autonomous campaigns.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Recent High-Value CRM Leads</div>
+          <div class="card-desc">Latest prospective buyers qualified by the AI sales agent.</div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Lead Name</th>
+                  <th>BHK / Budget</th>
+                  <th>Category</th>
+                  <th>Score</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-recent-leads">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No leads generated yet. Launch a campaign to start.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CONTACT IMPORT & PROCESSING -->
+    <section id="import-tab" class="tab-content">
+      <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-title">
+          <span>Contact Import & AI Campaigns</span>
+          <button class="btn btn-secondary btn-sm" onclick="loadSampleContacts()">⚡ Load Demo Excel Contacts</button>
+        </div>
+        <p class="card-desc">Upload prospective property buyer documents. Supports Excel (.xlsx, .xls), CSV, Word (.docx), PDF, and TXT files with auto-column recognition and Indian mobile validation.</p>
+
+        <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+          <div class="upload-icon">📄</div>
+          <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 0.25rem;">Drop contact file here or click to browse</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">Supports .XLSX, .XLS, .CSV, .PDF, .DOCX, .TXT up to 50MB</div>
+          <input type="file" id="file-input" style="display: none;" onchange="handleFileUpload(event)" accept=".xlsx,.xls,.csv,.docx,.pdf,.txt" />
+        </div>
+
+        <!-- Import Summary Bar -->
+        <div id="import-summary-bar" style="display: none; margin-bottom: 1.5rem;" class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="font-weight: 700;" id="summary-filename">document.xlsx</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);" id="summary-stats-text">Total: 0 | Valid: 0 | Duplicates: 0</div>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+              <button class="btn btn-secondary btn-sm" onclick="clearPreview()">Discard</button>
+              <button class="btn btn-primary btn-sm" onclick="openCampaignWithBatch()">🚀 Create Campaign With These Contacts</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Preview & Manual Correction Table -->
+        <div id="preview-section" style="display: none;">
+          <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem;">Interactive Contact Preview & Manual Verification</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Review extracted contacts. Flagged numbers can be corrected before launching any campaign.</p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Customer Name</th>
+                  <th>Normalized Phone</th>
+                  <th>Locality</th>
+                  <th>BHK / Budget</th>
+                  <th>Validation Status</th>
+                  <th>Notes</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="preview-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload History -->
+      <div class="card">
+        <div class="card-title">Document Import History</div>
+        <p class="card-desc">Previous documents processed by the ingestion engine.</p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Batch ID</th>
+                <th>File Name</th>
+                <th>Type</th>
+                <th>Total Rows</th>
+                <th>Valid Contacts</th>
+                <th>Duplicates</th>
+                <th>Invalid</th>
+                <th>Status</th>
+                <th>Uploaded At</th>
+              </tr>
+            </thead>
+            <tbody id="batch-history-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: CAMPAIGN CONTROL CENTER -->
+    <section id="campaigns-tab" class="tab-content">
+      <div class="card-title" style="margin-bottom: 1.5rem;">
+        <div>
+          <h2>AI Calling Campaign Control Center</h2>
+          <p class="card-desc">Manage queue-based autonomous outbound calling with concurrency limits and safety rules.</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openCampaignModal()">+ Create New Campaign</button>
+      </div>
+
+      <!-- Campaign List Table -->
+      <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-title">Active & Scheduled Campaigns</div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Campaign Name</th>
+                <th>Project</th>
+                <th>Agent Persona</th>
+                <th>Calling Window</th>
+                <th>Contacts</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="campaigns-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Campaign Contacts Queue Console -->
+      <div class="card">
+        <div class="card-title">Live Campaign Queue & Call Execution</div>
+        <p class="card-desc">Displays contacts currently in progress, connection status, and conversation progression.</p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Contact Name</th>
+                <th>Phone Number</th>
+                <th>Attempts</th>
+                <th>Status</th>
+                <th>Call Outcome</th>
+                <th>Last Call Time</th>
+              </tr>
+            </thead>
+            <tbody id="campaign-queue-tbody">
+              <tr><td colspan="6" style="text-align: center; color: var(--text-dim);">Select or launch a campaign to inspect active queue.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: CRM LEADS & INTELLIGENCE -->
+    <section id="leads-tab" class="tab-content">
+      <div class="card-title" style="margin-bottom: 1.5rem;">
+        <div>
+          <h2>CRM Qualified Leads & Intelligence</h2>
+          <p class="card-desc">Prospects evaluated through AI sales conversations with explainable scores and requirement citations.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <a href="/api/leads/export" class="btn btn-secondary btn-sm" target="_blank">📥 Export to Excel</a>
+          <button class="btn btn-primary btn-sm" onclick="openAddLeadModal()">+ Add Manual Lead</button>
+        </div>
+      </div>
+
+      <!-- Leads Table -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary btn-sm" onclick="filterLeads('all')">All Leads</button>
+            <button class="btn btn-secondary btn-sm" onclick="filterLeads('Hot')">Hot 🔥</button>
+            <button class="btn btn-secondary btn-sm" onclick="filterLeads('Warm')">Warm ☀️</button>
+            <button class="btn btn-secondary btn-sm" onclick="filterLeads('SiteVisit')">Site Visit Booked 📅</button>
+          </div>
+          <input type="text" class="form-input" style="width: 250px;" placeholder="Search by name, area, phone..." oninput="searchLeads(event)" />
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Lead ID</th>
+                <th>Customer Name</th>
+                <th>Phone Number</th>
+                <th>Locality</th>
+                <th>BHK</th>
+                <th>Budget</th>
+                <th>Category</th>
+                <th>Score</th>
+                <th>Site Visit</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="leads-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: SITE VISITS & APPOINTMENTS -->
+    <section id="appointments-tab" class="tab-content">
+      <div class="card-title" style="margin-bottom: 1.5rem;">
+        <div>
+          <h2>Site Visits & Property Inspections</h2>
+          <p class="card-desc">Scheduled site visits automatically booked by AI after slot validation.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Confirmation Code</th>
+                <th>Lead ID</th>
+                <th>Project</th>
+                <th>Meeting Type</th>
+                <th>Scheduled Date & Time</th>
+                <th>Assigned Sales Specialist</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="appts-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: BROWSER VOICE STUDIO -->
+    <section id="studio-tab" class="tab-content">
+      <div class="card" style="margin-bottom: 1.5rem; border-color: rgba(6, 182, 212, 0.4);">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <span class="badge badge-cold">BROWSER DEMO STUDIO</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">LOCAL MICROPHONE ONLY — INDEPENDENT FROM OUTBOUND TELEPHONY</span>
+        </div>
+        <p class="card-desc">Test real-time two-way voice conversations with the AI sales representative using your browser microphone and Sarvam Realtime STT.</p>
+
+        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap;">
+          <select id="studio-lead-select" class="form-select" style="max-width: 280px;">
+            <option value="">Select a Lead Context...</option>
+          </select>
+          <button id="btn-start-voice" class="btn btn-primary" onclick="startStudioCall()">🎙️ Start Realtime Call</button>
+          <button id="btn-stop-voice" class="btn btn-danger" onclick="stopStudioCall()" disabled>Hang Up</button>
+          <button id="btn-test-outbound" class="btn btn-secondary" onclick="triggerTestOutboundCall()">Simulate Provider Boundary</button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 0.75rem;">
+          <span id="studio-status" style="font-weight: 600; color: #38BDF8;">Ready</span>
+          <span id="studio-timer" style="color: var(--text-dim);">AI Idle · 00:00</span>
+        </div>
+
+        <div class="terminal-box" id="studio-transcript" style="min-height: 160px; margin-bottom: 1rem;">
+          <div style="color: var(--text-dim);">Live spoken dialogue and transcripts will appear here...</div>
+        </div>
+
+        <audio id="studio-audio-player" controls style="width: 100%; display: none;"></audio>
+      </div>
+    </section>
+
+    <!-- TAB 7: COMPLIANCE & DND REGISTRY -->
+    <section id="compliance-tab" class="tab-content">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Do Not Call (DND) Registry</div>
+          <p class="card-desc">Manage customer opt-outs. Blocked numbers will NEVER be dialed by any campaign.</p>
+
+          <form onsubmit="handleManualDnd(event)" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+            <input type="text" id="dnd-input-phone" class="form-input" placeholder="+91XXXXXXXXXX" required />
+            <button class="btn btn-danger" type="submit">Block Number</button>
+          </form>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Phone Number</th>
+                  <th>Reason</th>
+                  <th>Source</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="dnd-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Regulatory Audit Trail</div>
+          <p class="card-desc">Cryptographic timestamps of campaign launches, consent checks, and caller actions.</p>
+          <div class="table-container" style="max-height: 420px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Entity</th>
+                  <th>Details</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="audit-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Post-Call Intelligence Dossier -->
+  <div id="dossier-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 800;" id="dossier-name">Customer Intelligence Dossier</h3>
+          <span style="font-size: 0.78rem; color: var(--text-muted);" id="dossier-phone">+91 0000000000</span>
+        </div>
+        <button class="close-btn" onclick="closeDossierModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="dossier-body">
+        <!-- Injected via JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeDossierModal()">Close Dossier</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Campaign Creator -->
+  <div id="campaign-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 style="font-size: 1.15rem; font-weight: 800;">Create Autonomous AI Calling Campaign</h3>
+        <button class="close-btn" onclick="closeCampaignModal()">&times;</button>
+      </div>
+      <form onsubmit="handleCreateCampaign(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Campaign Name</label>
+            <input class="form-input" id="camp-name" value="Krishna Wakad Launch Drive" required />
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Project</label>
+              <input class="form-input" id="camp-project" value="Krishna's AI Property - Wakad" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Calling Objective</label>
+              <select class="form-select" id="camp-objective">
+                <option value="New Launch Awareness & Lead Qualification">New Launch Awareness & Lead Qualification</option>
+                <option value="Site Visit Scheduling Drive">Site Visit Scheduling Drive</option>
+                <option value="Budget Home Buyer Screening">Budget Home Buyer Screening</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">AI Sales Specialist Persona</label>
+              <select class="form-select" id="camp-agent">
+                <option value="Priya - Residential Advisory Executive">Priya - Residential Advisory Executive</option>
+                <option value="Aarav - Senior Property Specialist">Aarav - Senior Property Specialist</option>
+                <option value="Vikram - Luxury Estate Consultant">Vikram - Luxury Estate Consultant</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Language</label>
+              <select class="form-select" id="camp-lang">
+                <option value="en-IN">English (India)</option>
+                <option value="hi-IN">Hindi</option>
+                <option value="Hinglish">Hinglish</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Permitted Calling Window</label>
+              <div style="display: flex; gap: 0.5rem;">
+                <input class="form-input" id="camp-start-time" value="09:30" />
+                <span style="align-self: center;">to</span>
+                <input class="form-input" id="camp-end-time" value="19:30" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Max Attempts per Contact</label>
+              <input type="number" class="form-input" id="camp-max-attempts" value="2" min="1" max="5" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Assigned Sales Team</label>
+              <input class="form-input" id="camp-sales-team" value="Wakad Central Sales Desk" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target Batch ID</label>
+              <input class="form-input" id="camp-batch-id" placeholder="Optional (defaults to latest batch)" />
+            </div>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-dim); background: rgba(99, 102, 241, 0.08); padding: 0.75rem; border-radius: var(--radius-sm);">
+            🛡️ <strong>Compliance Guard:</strong> Calls enforce Indian calling windows (09:30-19:30) and cross-reference DND blocklists prior to every dial attempt. Campaign starts in Draft mode and requires approval.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeCampaignModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Campaign</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript Frontend Controller -->
+  <script>
+    let activeBatchId = null;
+    let allLeads = [];
+    let currentTab = 'dashboard-tab';
+    let studioSocket = null;
+    let studioMediaRecorder = null;
+    let studioAudioContext = null;
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      refreshAllData();
+      setInterval(pollLiveEvents, 3000);
+    });
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById(tabId);
+      if (target) target.classList.add('active');
+      const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(tabId));
+      if (btn) btn.classList.add('active');
+      currentTab = tabId;
+      refreshAllData();
+    }
+
+    async function refreshAllData() {
+      await Promise.all([
+        fetchAnalytics(),
+        fetchLeads(),
+        fetchBatches(),
+        fetchCampaigns(),
+        fetchAppointments(),
+        fetchDnd(),
+        fetchAuditLogs(),
+      ]);
+    }
+
+    async function fetchAnalytics() {
+      try {
+        const res = await fetch('/api/analytics/overview');
+        const data = await res.json();
+        document.getElementById('kpi-uploaded').innerText = data.total_uploaded_contacts || 0;
+        document.getElementById('kpi-valid-sub').innerText = `${data.valid_contacts || 0} verified eligible`;
+        document.getElementById('kpi-connected').innerText = data.calls_connected || 0;
+        document.getElementById('kpi-attempted-sub').innerText = `${data.calls_attempted || 0} total attempts`;
+        document.getElementById('kpi-qualified').innerText = data.qualified_leads || 0;
+        document.getElementById('kpi-conversion-sub').innerText = `${data.conversion_rate || 0}% conversion rate`;
+        document.getElementById('kpi-hot').innerText = data.hot_leads || 0;
+        document.getElementById('kpi-visits').innerText = data.site_visits_confirmed || 0;
+      } catch (e) {
+        console.error('Analytics fetch error:', e);
+      }
+    }
+
+    async function fetchLeads() {
+      try {
+        const res = await fetch('/api/leads');
+        allLeads = await res.json();
+        document.getElementById('leads-count-badge').innerText = allLeads.length;
+        renderLeads(allLeads);
+        renderDashboardRecentLeads(allLeads.slice(0, 5));
+        populateStudioLeadSelect(allLeads);
+      } catch (e) {
+        console.error('Leads fetch error:', e);
+      }
+    }
+
+    function renderLeads(leads) {
+      const tbody = document.getElementById('leads-tbody');
+      if (!leads.length) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-dim);">No leads in CRM. Launch an AI campaign to qualify prospective buyers.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = leads.map(l => {
+        const categoryClass = l.interest_status === 'Hot' ? 'badge-hot' : (l.interest_status === 'Warm' ? 'badge-warm' : (l.interest_status === 'Do Not Call' ? 'badge-dnd' : 'badge-cold'));
+        const scoreColor = (l.score || 0) >= 70 ? '#EF4444' : ((l.score || 0) >= 40 ? '#F59E0B' : '#06B6D4');
+        return `
+          <tr>
+            <td><strong>#${l.id}</strong></td>
+            <td><strong>${escapeHtml(l.name)}</strong></td>
+            <td>${escapeHtml(l.phone_number)}</td>
+            <td>${escapeHtml(l.area || '-')}</td>
+            <td>${escapeHtml(l.bhk || '-')}</td>
+            <td>${escapeHtml(l.budget || '-')}</td>
+            <td><span class="badge ${categoryClass}">${escapeHtml(l.interest_status)}</span></td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width: ${l.score || 0}%; background: ${scoreColor};"></div></div>
+                <span style="font-weight: 700; font-size: 0.8rem;">${l.score || 0}</span>
+              </div>
+            </td>
+            <td>${l.site_visit_interest ? '<span class="badge badge-confirmed">Confirmed 📅</span>' : '<span style="color: var(--text-dim);">-</span>'}</td>
+            <td><button class="btn btn-secondary btn-sm" onclick="openDossierModal(${l.id})">🔍 View Intelligence</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderDashboardRecentLeads(leads) {
+      const tbody = document.getElementById('dashboard-recent-leads');
+      if (!leads.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No qualified leads yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = leads.map(l => `
+        <tr>
+          <td><strong>${escapeHtml(l.name)}</strong></td>
+          <td>${escapeHtml(l.bhk || '')} ${escapeHtml(l.budget ? '@ ' + l.budget : '')}</td>
+          <td><span class="badge ${l.interest_status === 'Hot' ? 'badge-hot' : 'badge-warm'}">${escapeHtml(l.interest_status)}</span></td>
+          <td><strong>${l.score || 0}/100</strong></td>
+          <td><button class="btn btn-secondary btn-sm" onclick="openDossierModal(${l.id})">Dossier</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function populateStudioLeadSelect(leads) {
+      const select = document.getElementById('studio-lead-select');
+      select.innerHTML = '<option value="">Select a Lead Context...</option>' +
+        leads.map(l => `<option value="${l.id}">${escapeHtml(l.name)} (${escapeHtml(l.phone_number)}) - ${l.interest_status}</option>`).join('');
+    }
+
+    async function openDossierModal(leadId) {
+      try {
+        const res = await fetch(`/api/leads/${leadId}`);
+        const data = await res.json();
+        document.getElementById('dossier-name').innerText = `${data.name} — Customer Intelligence Dossier`;
+        document.getElementById('dossier-phone').innerText = `Phone: ${data.phone_number} | Assigned: ${data.assigned_salesperson || 'Sales Desk'}`;
+
+        const reqs = data.extracted_requirements || {};
+        const scoreBreakdown = data.score_breakdown || {};
+        const evidence = data.evidence || {};
+        const appts = data.appointments || [];
+
+        let apptHtml = '';
+        if (appts.length) {
+          apptHtml = appts.map(a => `
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>📅 Site Visit Confirmed: ${a.date} at ${a.time}</strong>
+                <span class="badge badge-confirmed">${a.confirmation_code}</span>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Assigned Specialist: ${a.assigned_salesperson}</div>
+            </div>
+          `).join('');
+        }
+
+        document.getElementById('dossier-body').innerHTML = `
+          <!-- Summary Banner -->
+          <div style="background: rgba(99, 102, 241, 0.08); border-left: 4px solid var(--accent-indigo); padding: 1rem; border-radius: 6px; margin-bottom: 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #A5B4FC; margin-bottom: 0.25rem;">AI Sales Executive Summary</div>
+            <div style="font-size: 0.9rem; line-height: 1.4;">${escapeHtml(data.summary || 'Summary pending call completion.')}</div>
+          </div>
+
+          <!-- Score Card & Classification -->
+          <div class="grid-2" style="margin-bottom: 1.25rem;">
+            <div class="card" style="padding: 1rem;">
+              <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">EXPLAINABLE INTENT SCORE</div>
+              <div style="font-size: 2.2rem; font-weight: 800; color: ${data.score >= 70 ? '#EF4444' : '#F59E0B'};">${data.score || 0}<span style="font-size: 1rem; color: var(--text-dim);">/100</span></div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Classification: <strong style="color: #fff;">${data.interest_status}</strong></div>
+              <div style="margin-top: 0.75rem; font-size: 0.72rem; line-height: 1.5; color: var(--text-dim);">
+                ${Object.entries(scoreBreakdown).map(([k, v]) => `• ${k.replace('_', ' ')}: +${v} pts`).join('<br>')}
+              </div>
+            </div>
+
+            <div class="card" style="padding: 1rem;">
+              <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">RECOMMENDED NEXT ACTION</div>
+              <div style="font-size: 0.85rem; font-weight: 600; color: #34D399; margin: 0.5rem 0;">${escapeHtml(data.next_action || 'Follow up per sales playbook')}</div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);">Follow-up preference: ${reqs.follow_up_preference || 'Standard'}</div>
+              ${apptHtml}
+            </div>
+          </div>
+
+          <!-- Extracted Requirements -->
+          <div class="card" style="padding: 1rem; margin-bottom: 1.25rem;">
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.75rem;">STRUCTURED CUSTOMER REQUIREMENTS (EXTRACTED)</div>
+            <div class="grid-3" style="font-size: 0.82rem; gap: 0.75rem;">
+              <div><span style="color: var(--text-dim);">BHK:</span> <strong>${reqs.bhk || 'Not specified'}</strong></div>
+              <div><span style="color: var(--text-dim);">Budget:</span> <strong>${reqs.budget || 'Not specified'}</strong></div>
+              <div><span style="color: var(--text-dim);">Locality:</span> <strong>${reqs.preferred_locality || 'Pune'}</strong></div>
+              <div><span style="color: var(--text-dim);">Purpose:</span> <strong>${reqs.property_purpose || 'Self-use'}</strong></div>
+              <div><span style="color: var(--text-dim);">Timeline:</span> <strong>${reqs.buying_timeline || 'Exploring'}</strong></div>
+              <div><span style="color: var(--text-dim);">Financing:</span> <strong>${reqs.financing_requirement || 'Not stated'}</strong></div>
+              <div style="grid-column: span 3;"><span style="color: var(--text-dim);">Amenities:</span> <strong>${reqs.amenities_preferred || 'Clubhouse, Gym, Pool'}</strong></div>
+            </div>
+          </div>
+
+          <!-- Evidence Citations -->
+          <div class="card" style="padding: 1rem;">
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem;">TRANSCRIPT EVIDENCE CITATIONS</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); font-family: ui-monospace, monospace;">
+              ${Object.entries(evidence).length ? Object.entries(evidence).map(([k, v]) => `<div><strong style="color: #38BDF8;">[${k}]</strong> ${escapeHtml(v)}</div>`).join('') : '<div>Direct dialogue analysis extracted parameters from audio transcript.</div>'}
+            </div>
+          </div>
+        `;
+        document.getElementById('dossier-modal').classList.add('open');
+      } catch (e) {
+        alert('Could not load dossier: ' + e);
+      }
+    }
+
+    function closeDossierModal() {
+      document.getElementById('dossier-modal').classList.remove('open');
+    }
+
+    // Document Upload & Preview Handler
+    async function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/contacts/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Upload failed');
+
+        renderImportSummary(data.summary, data.rows, data.batch_id);
+      } catch (e) {
+        alert('File upload error: ' + e.message);
+      }
+    }
+
+    async function loadSampleContacts() {
+      try {
+        const res = await fetch('/api/contacts/load-sample', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed');
+        renderImportSummary(data.summary, data.rows, data.batch_id);
+      } catch (e) {
+        alert('Sample contact load error: ' + e.message);
+      }
+    }
+
+    function renderImportSummary(summary, rows, batchId) {
+      activeBatchId = batchId;
+      document.getElementById('import-summary-bar').style.display = 'block';
+      document.getElementById('summary-filename').innerText = `Uploaded: ${summary.filename} (${summary.file_type.toUpperCase()})`;
+      document.getElementById('summary-stats-text').innerHTML = `
+        Total Rows: <strong>${summary.total_rows}</strong> | 
+        <span style="color: #34D399;">Valid: ${summary.valid_rows}</span> | 
+        <span style="color: #FBBF24;">Duplicates: ${summary.duplicate_rows}</span> | 
+        <span style="color: #C4B5FD;">Review Needed: ${summary.review_needed_rows}</span> | 
+        <span style="color: #F87171;">Invalid: ${summary.invalid_rows}</span>
+      `;
+
+      const tbody = document.getElementById('preview-tbody');
+      tbody.innerHTML = rows.map(r => {
+        const statusBadge = r.validation_status === 'valid' ? 'badge-valid' : (r.validation_status === 'duplicate' ? 'badge-duplicate' : (r.validation_status === 'review_needed' ? 'badge-review' : 'badge-invalid'));
+        return `
+          <tr id="row-${r.id}">
+            <td>${r.index}</td>
+            <td><input class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.8rem;" value="${escapeHtml(r.name)}" id="input-name-${r.id}" /></td>
+            <td><input class="form-input" style="padding: 0.3rem 0.5rem; font-size: 0.8rem;" value="${escapeHtml(r.phone_number || r.raw_phone)}" id="input-phone-${r.id}" /></td>
+            <td>${escapeHtml(r.locality || '-')}</td>
+            <td>${escapeHtml(r.bhk || '')} ${escapeHtml(r.budget || '')}</td>
+            <td><span class="badge ${statusBadge}">${escapeHtml(r.validation_status)}</span></td>
+            <td><span style="font-size: 0.75rem; color: var(--text-dim);">${escapeHtml(r.validation_message)}</span></td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick="saveContactCorrection(${r.id})">Save</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      document.getElementById('preview-section').style.display = 'block';
+      document.getElementById('contact-count-badge').innerText = rows.length;
+      fetchBatches();
+    }
+
+    async function saveContactCorrection(contactId) {
+      const name = document.getElementById(`input-name-${contactId}`).value;
+      const phone = document.getElementById(`input-phone-${contactId}`).value;
+      try {
+        const res = await fetch(`/api/contacts/${contactId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone_number: phone, validation_status: 'valid' }),
+        });
+        if (res.ok) {
+          alert('Contact updated and approved!');
+        }
+      } catch (e) {
+        alert('Could not update: ' + e);
+      }
+    }
+
+    function clearPreview() {
+      document.getElementById('import-summary-bar').style.display = 'none';
+      document.getElementById('preview-section').style.display = 'none';
+      activeBatchId = null;
+    }
+
+    async function fetchBatches() {
+      try {
+        const res = await fetch('/api/contacts/batches');
+        const batches = await res.json();
+        const tbody = document.getElementById('batch-history-tbody');
+        if (!batches.length) {
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-dim);">No import history.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = batches.map(b => `
+          <tr>
+            <td><strong>#${b.id}</strong></td>
+            <td>${escapeHtml(b.filename)}</td>
+            <td><span class="badge badge-cold">${b.file_type}</span></td>
+            <td>${b.total_rows}</td>
+            <td><span style="color: #34D399;">${b.valid_rows}</span></td>
+            <td>${b.duplicate_rows}</td>
+            <td>${b.invalid_rows}</td>
+            <td><span class="badge ${b.status === 'approved' ? 'badge-confirmed' : 'badge-warm'}">${b.status}</span></td>
+            <td style="font-size: 0.75rem; color: var(--text-dim);">${new Date(b.created_at).toLocaleString()}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Batches fetch error:', e);
+      }
+    }
+
+    // Campaign Management
+    function openCampaignModal() {
+      if (activeBatchId) {
+        document.getElementById('camp-batch-id').value = activeBatchId;
+      }
+      document.getElementById('campaign-modal').classList.add('open');
+    }
+
+    function closeCampaignModal() {
+      document.getElementById('campaign-modal').classList.remove('open');
+    }
+
+    function openCampaignWithBatch() {
+      openCampaignModal();
+    }
+
+    async function handleCreateCampaign(event) {
+      event.preventDefault();
+      const payload = {
+        name: document.getElementById('camp-name').value,
+        project_name: document.getElementById('camp-project').value,
+        objective: document.getElementById('camp-objective').value,
+        agent_name: document.getElementById('camp-agent').value,
+        language: document.getElementById('camp-lang').value,
+        window_start: document.getElementById('camp-start-time').value,
+        window_end: document.getElementById('camp-end-time').value,
+        max_attempts: parseInt(document.getElementById('camp-max-attempts').value, 10),
+        assigned_sales_team: document.getElementById('camp-sales-team').value,
+        batch_id: document.getElementById('camp-batch-id').value ? parseInt(document.getElementById('camp-batch-id').value, 10) : null,
+      };
+
+      try {
+        const res = await fetch('/api/campaigns', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Campaign creation failed');
+        alert(`Campaign "${data.name}" created in Draft status! Ready for launch.`);
+        closeCampaignModal();
+        switchTab('campaigns-tab');
+        fetchCampaigns();
+      } catch (e) {
+        alert('Campaign creation error: ' + e.message);
+      }
+    }
+
+    async function fetchCampaigns() {
+      try {
+        const res = await fetch('/api/campaigns');
+        const campaigns = await res.json();
+        document.getElementById('campaign-count-badge').innerText = campaigns.length;
+        const tbody = document.getElementById('campaigns-tbody');
+        if (!campaigns.length) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-dim);">No campaigns found. Click "+ Create New Campaign" to start.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = campaigns.map(c => {
+          const statusBadge = c.status === 'running' ? 'badge-confirmed' : (c.status === 'paused' ? 'badge-warm' : (c.status === 'completed' ? 'badge-cold' : 'badge-dnd'));
+          return `
+            <tr>
+              <td><strong>${escapeHtml(c.name)}</strong></td>
+              <td>${escapeHtml(c.project_name)}</td>
+              <td>${escapeHtml(c.agent_name.split('-')[0])}</td>
+              <td>${c.window_start} - ${c.window_end}</td>
+              <td>${c.completed_contacts} / ${c.total_contacts}</td>
+              <td><span class="badge ${statusBadge}">${c.status}</span></td>
+              <td>
+                ${c.status === 'draft' || c.status === 'approved' ? `<button class="btn btn-primary btn-sm" onclick="startCampaign(${c.id})">🚀 Launch Call Engine</button>` : ''}
+                ${c.status === 'running' ? `<button class="btn btn-secondary btn-sm" onclick="pauseCampaign(${c.id})">⏸️ Pause</button> <button class="btn btn-danger btn-sm" onclick="stopCampaign(${c.id})">⏹️ Stop</button>` : ''}
+                ${c.status === 'paused' ? `<button class="btn btn-primary btn-sm" onclick="resumeCampaign(${c.id})">▶️ Resume</button>` : ''}
+                <button class="btn btn-secondary btn-sm" onclick="inspectCampaignQueue(${c.id})">Inspect Queue</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (e) {
+        console.error('Campaigns fetch error:', e);
+      }
+    }
+
+    async function startCampaign(campaignId) {
+      if (!confirm('Explicit Launch Confirmation: Do you want to initiate AI outbound calls for this campaign?')) return;
+      try {
+        const res = await fetch(`/api/campaigns/${campaignId}/start`, { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || 'Campaign launched!');
+        fetchCampaigns();
+        inspectCampaignQueue(campaignId);
+      } catch (e) {
+        alert('Start error: ' + e);
+      }
+    }
+
+    async function pauseCampaign(campaignId) {
+      await fetch(`/api/campaigns/${campaignId}/pause`, { method: 'POST' });
+      fetchCampaigns();
+    }
+
+    async function resumeCampaign(campaignId) {
+      await fetch(`/api/campaigns/${campaignId}/resume`, { method: 'POST' });
+      fetchCampaigns();
+    }
+
+    async function stopCampaign(campaignId) {
+      await fetch(`/api/campaigns/${campaignId}/stop`, { method: 'POST' });
+      fetchCampaigns();
+    }
+
+    async function inspectCampaignQueue(campaignId) {
+      try {
+        const res = await fetch(`/api/campaigns/${campaignId}`);
+        const data = await res.json();
+        const tbody = document.getElementById('campaign-queue-tbody');
+        if (!data.contacts || !data.contacts.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-dim);">No contacts attached to this campaign.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.contacts.map(cc => `
+          <tr>
+            <td><strong>${escapeHtml(cc.name)}</strong></td>
+            <td>${escapeHtml(cc.phone_number)}</td>
+            <td>${cc.attempts}</td>
+            <td><span class="badge ${cc.status === 'completed' ? 'badge-confirmed' : (cc.status === 'calling' ? 'badge-cold' : 'badge-warm')}">${cc.status}</span></td>
+            <td>${cc.call_outcome ? `<span class="badge ${cc.call_outcome === 'Hot' ? 'badge-hot' : 'badge-warm'}">${escapeHtml(cc.call_outcome)}</span>` : '-'}</td>
+            <td style="font-size: 0.75rem; color: var(--text-dim);">${cc.last_call_at ? new Date(cc.last_call_at).toLocaleTimeString() : 'Pending'}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Queue inspect error:', e);
+      }
+    }
+
+    // Site Visits & Appointments
+    async function fetchAppointments() {
+      try {
+        const res = await fetch('/api/appointments');
+        const appts = await res.json();
+        document.getElementById('appt-count-badge').innerText = appts.length;
+        const tbody = document.getElementById('appts-tbody');
+        if (!appts.length) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-dim);">No site visits scheduled yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = appts.map(a => `
+          <tr>
+            <td><strong style="color: #34D399;">${a.confirmation_code}</strong></td>
+            <td>#${a.lead_id}</td>
+            <td>${escapeHtml(a.project_name)}</td>
+            <td>${escapeHtml(a.meeting_type)}</td>
+            <td><strong>${a.requested_date} at ${a.requested_time}</strong></td>
+            <td>${escapeHtml(a.assigned_salesperson)}</td>
+            <td><span class="badge ${a.status === 'confirmed' ? 'badge-confirmed' : 'badge-warm'}">${a.status}</span></td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick="rescheduleAppt(${a.id})">Reschedule</button>
+              <button class="btn btn-danger btn-sm" onclick="cancelAppt(${a.id})">Cancel</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Appointments fetch error:', e);
+      }
+    }
+
+    async function rescheduleAppt(apptId) {
+      const newDate = prompt('Enter new date (e.g. 2026-11-08 or Sunday):', 'Sunday');
+      const newTime = prompt('Enter new time slot (e.g. 02:00 PM):', '02:00 PM');
+      if (!newDate || !newTime) return;
+      try {
+        await fetch(`/api/appointments/${apptId}/reschedule`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ new_date: newDate, new_time: newTime }),
+        });
+        alert('Appointment rescheduled!');
+        fetchAppointments();
+      } catch (e) {
+        alert('Error: ' + e);
+      }
+    }
+
+    async function cancelAppt(apptId) {
+      if (!confirm('Cancel this site visit appointment?')) return;
+      try {
+        await fetch(`/api/appointments/${apptId}/cancel`, { method: 'POST' });
+        alert('Appointment cancelled.');
+        fetchAppointments();
+      } catch (e) {
+        alert('Error: ' + e);
+      }
+    }
+
+    // DND & Compliance
+    async function fetchDnd() {
+      try {
+        const res = await fetch('/api/compliance/dnd');
+        const list = await res.json();
+        const tbody = document.getElementById('dnd-tbody');
+        tbody.innerHTML = list.map(d => `
+          <tr>
+            <td><strong>${escapeHtml(d.phone_number)}</strong></td>
+            <td>${escapeHtml(d.reason)}</td>
+            <td><span class="badge badge-dnd">${d.source}</span></td>
+            <td style="font-size: 0.75rem; color: var(--text-dim);">${new Date(d.created_at).toLocaleDateString()}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('DND fetch error:', e);
+      }
+    }
+
+    async function handleManualDnd(event) {
+      event.preventDefault();
+      const phone = document.getElementById('dnd-input-phone').value;
+      try {
+        await fetch('/api/compliance/dnd', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone_number: phone, reason: 'Manual operator entry' }),
+        });
+        alert(`Number ${phone} registered on Do Not Call list.`);
+        document.getElementById('dnd-input-phone').value = '';
+        fetchDnd();
+      } catch (e) {
+        alert('Error: ' + e);
+      }
+    }
+
+    async function fetchAuditLogs() {
+      try {
+        const res = await fetch('/api/compliance/audit-logs');
+        const logs = await res.json();
+        const tbody = document.getElementById('audit-tbody');
+        tbody.innerHTML = logs.map(l => `
+          <tr>
+            <td><strong>${escapeHtml(l.action)}</strong></td>
+            <td>${escapeHtml(l.entity_type)} #${escapeHtml(l.entity_id)}</td>
+            <td><span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(l.details)}</span></td>
+            <td style="font-size: 0.75rem; color: var(--text-dim);">${new Date(l.created_at).toLocaleTimeString()}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Audit fetch error:', e);
+      }
+    }
+
+    async function pollLiveEvents() {
+      try {
+        const res = await fetch('/api/campaigns/live-events');
+        const events = await res.json();
+        const terminal = document.getElementById('live-terminal');
+        if (events && events.length) {
+          terminal.innerHTML = events.slice(-30).map(e => `
+            <div class="terminal-entry">
+              <span class="terminal-time">[${new Date(e.timestamp).toLocaleTimeString()}]</span>
+              <strong style="color: #A5B4FC;">[${e.event_type}]</strong>
+              <span>${escapeHtml(e.message)}</span>
+            </div>
+          `).join('');
+          terminal.scrollTop = terminal.scrollHeight;
+        }
+      } catch (e) {}
+    }
+
+    // Helper Filter & Search Functions
+    function filterLeads(category) {
+      if (category === 'all') {
+        renderLeads(allLeads);
+      } else if (category === 'SiteVisit') {
+        renderLeads(allLeads.filter(l => l.site_visit_interest));
+      } else {
+        renderLeads(allLeads.filter(l => l.interest_status === category));
+      }
+    }
+
+    function searchLeads(event) {
+      const q = event.target.value.toLowerCase();
+      renderLeads(allLeads.filter(l => (l.name || '').toLowerCase().includes(q) || (l.area || '').toLowerCase().includes(q) || (l.phone_number || '').includes(q)));
+    }
+
+    // Studio WebSocket Microphone Controls
+    async function startStudioCall() {
+      const leadId = document.getElementById('studio-lead-select').value || (allLeads[0]?.id || 1);
+      const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/voice';
+      studioSocket = new WebSocket(wsUrl);
+
+      document.getElementById('studio-status').innerText = 'Connecting to Sarvam Realtime STT...';
+      document.getElementById('btn-start-voice').disabled = true;
+      document.getElementById('btn-stop-voice').disabled = false;
+
+      studioSocket.onopen = async () => {
+        studioSocket.send(JSON.stringify({ type: 'start', lead_id: leadId }));
+        document.getElementById('studio-status').innerText = 'Listening — Speak into microphone...';
+        initMicrophoneStream();
+      };
+
+      studioSocket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        const transcriptBox = document.getElementById('studio-transcript');
+        if (msg.type === 'transcript') {
+          transcriptBox.innerHTML += `<div><strong style="color: #38BDF8;">Customer:</strong> ${escapeHtml(msg.text)}</div>`;
+          transcriptBox.scrollTop = transcriptBox.scrollHeight;
+        } else if (msg.type === 'response') {
+          transcriptBox.innerHTML += `<div><strong style="color: #34D399;">AI Agent:</strong> ${escapeHtml(msg.response)}</div>`;
+          transcriptBox.scrollTop = transcriptBox.scrollHeight;
+          if (msg.audio) {
+            const player = document.getElementById('studio-audio-player');
+            player.src = 'data:audio/wav;base64,' + msg.audio;
+            player.style.display = 'block';
+            player.play().catch(() => {});
+          }
+        }
+      };
+
+      studioSocket.onclose = () => {
+        document.getElementById('studio-status').innerText = 'Call Ended';
+        document.getElementById('btn-start-voice').disabled = false;
+        document.getElementById('btn-stop-voice').disabled = true;
+      };
+    }
+
+    async function initMicrophoneStream() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        studioAudioContext = new AudioContext({ sampleRate: 16000 });
+        const source = studioAudioContext.createMediaStreamSource(stream);
+        const processor = studioAudioContext.createScriptProcessor(4096, 1, 1);
+
+        source.connect(processor);
+        processor.connect(studioAudioContext.destination);
+
+        processor.onaudioprocess = (e) => {
+          if (!studioSocket || studioSocket.readyState !== WebSocket.OPEN) return;
+          const input = e.inputBuffer.getChannelData(0);
+          const pcm16 = new Int16Array(input.length);
+          for (let i = 0; i < input.length; i++) {
+            const s = Math.max(-1, Math.min(1, input[i]));
+            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+          }
+          const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(pcm16.buffer)));
+          studioSocket.send(JSON.stringify({ type: 'audio', audio: base64Audio }));
+        };
+      } catch (e) {
+        document.getElementById('studio-status').innerText = 'Microphone access denied or error: ' + e;
+      }
+    }
+
+    function stopStudioCall() {
+      if (studioSocket && studioSocket.readyState === WebSocket.OPEN) {
+        studioSocket.send(JSON.stringify({ type: 'end' }));
+        studioSocket.close();
+      }
+      if (studioAudioContext) studioAudioContext.close();
+      document.getElementById('btn-start-voice').disabled = false;
+      document.getElementById('btn-stop-voice').disabled = true;
+      refreshAllData();
+    }
+
+    async function triggerTestOutboundCall() {
+      const leadId = document.getElementById('studio-lead-select').value || (allLeads[0]?.id || 1);
+      try {
+        const res = await fetch('/api/outbound/test-call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lead_id: leadId }),
+        });
+        const data = await res.json();
+        alert(`Provider Boundary Test: ${data.status} — ${data.message}`);
+      } catch (e) {
+        alert('Test call error: ' + e);
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
