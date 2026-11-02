@@ -4,6 +4,7 @@ from ast import literal_eval
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import re
 from typing import Any
 from uuid import uuid4
 
@@ -603,8 +604,22 @@ def get_lead_by_id(lead_id: int) -> Lead | None:
 
 
 def get_lead_by_phone(phone_number: str) -> Lead | None:
+    if not phone_number:
+        return None
+    cleaned = re.sub(r"[^\d]", "", phone_number)
+    last_10 = cleaned[-10:] if len(cleaned) >= 10 else cleaned
     with SessionLocal() as session:
-        return session.scalar(select(Lead).where(Lead.phone_number == phone_number))
+        # 1. Try exact phone match
+        lead = session.scalar(select(Lead).where(Lead.phone_number == phone_number))
+        if lead:
+            return lead
+        # 2. Try normalized 10-digit suffix match
+        if len(last_10) == 10:
+            leads = session.scalars(select(Lead)).all()
+            for l in leads:
+                if l.phone_number and re.sub(r"[^\d]", "", l.phone_number).endswith(last_10):
+                    return l
+        return None
 
 
 def create_or_update_lead(
@@ -781,7 +796,22 @@ def update_outbound_call_status(
     with SessionLocal() as session:
         call = session.scalar(select(OutboundCall).where(OutboundCall.provider_call_id == provider_call_id))
         if not call:
-            return None
+            call = OutboundCall(
+                lead_id=0,
+                phone_number="",
+                provider_call_id=provider_call_id,
+                status=status,
+                message="Call record auto-created from provider update",
+                provider="exotel",
+                call_status=status,
+                duration_seconds=duration_seconds,
+                recording_url=recording_url,
+                error_message=error_message,
+            )
+            session.add(call)
+            session.commit()
+            session.refresh(call)
+            return call
         call.call_status = status
         call.status = status
         if duration_seconds:
@@ -792,7 +822,7 @@ def update_outbound_call_status(
             call.error_message = error_message
         if status in ("answered", "in_progress") and not call.answered_at:
             call.answered_at = datetime.now(timezone.utc)
-        if status in ("completed", "failed", "busy", "no_answer"):
+        if status in ("completed", "failed", "busy", "no_answer", "canceled"):
             call.ended_at = datetime.now(timezone.utc)
         session.commit()
         session.refresh(call)

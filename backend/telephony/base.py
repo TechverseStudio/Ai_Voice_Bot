@@ -15,6 +15,11 @@ class CallRequest:
     caller_id: str | None = None
     customer_name: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] | None = None
+
+    def __post_init__(self):
+        if self.context and not self.metadata:
+            object.__setattr__(self, "metadata", dict(self.context))
 
 
 @dataclass(frozen=True)

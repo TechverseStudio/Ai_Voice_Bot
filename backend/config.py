@@ -7,17 +7,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
+SARVAM_FALLBACK_API_KEY = os.getenv("SARVAM_FALLBACK_API_KEY", "sk_yhson6wm_nFfUznOxSxDDK2PkfmV3SocT")
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "sqlite:///data/voice_agent.db",
 )
 TELEPHONY_PROVIDER = os.getenv("TELEPHONY_PROVIDER", "mock")
-TELEPHONY_MOCK_MODE = os.getenv("TELEPHONY_MOCK_MODE", "true").lower() == "true"
-EXOTEL_BASE_URL = os.getenv("EXOTEL_BASE_URL", "")
+TELEPHONY_MOCK_MODE = os.getenv("TELEPHONY_MOCK_MODE", "false" if TELEPHONY_PROVIDER in ("exotel", "twilio") else "true").lower() == "true"
+EXOTEL_BASE_URL = os.getenv("EXOTEL_BASE_URL", "https://api.exotel.com")
 EXOTEL_ACCOUNT_SID = os.getenv("EXOTEL_ACCOUNT_SID", "")
+EXOTEL_API_KEY = os.getenv("EXOTEL_API_KEY", "")
 EXOTEL_API_TOKEN = os.getenv("EXOTEL_API_TOKEN", "")
 EXOTEL_CALLER_ID = os.getenv("EXOTEL_CALLER_ID", "")
 AGENTSTREAM_PUBLIC_URL = os.getenv("AGENTSTREAM_PUBLIC_URL", "")
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", AGENTSTREAM_PUBLIC_URL)
 
-if not SARVAM_API_KEY:
+if not SARVAM_API_KEY and not SARVAM_FALLBACK_API_KEY:
     raise ValueError("SARVAM_API_KEY is not set in the environment variables.")

@@ -1,6 +1,94 @@
 
+import asyncio
+import audioop
+import base64
+from datetime import datetime, timezone
+import io
+import json
+import logging
+import os
+from pathlib import Path
+import re
+import tempfile
+from typing import Any
+from uuid import uuid4
+import wave
+
+from fastapi import (
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
+import numpy as np
+from pydantic import BaseModel
+
+from backend.telephony import (
+    CallRequest,
+    CallResult,
+    get_provider,
+    get_telephony_status,
+    initiate_outbound_call,
+    process_webhook,
+    validate_phone_number,
+)
+from backend.crm import (
+    update_outbound_call_status,
+    get_outbound_calls,
+    save_outbound_call,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def _resample_pcm_8k_to_16k(pcm_8k: bytes) -> bytes:
+    """Upsample 8kHz 16-bit linear PCM (Exotel/telephony) to 16kHz for Sarvam Saaras STT."""
+    if not pcm_8k:
+        return b""
+    try:
+        samples = np.frombuffer(pcm_8k, dtype=np.int16)
+        return np.repeat(samples, 2).tobytes()
+    except Exception:
+        try:
+            return audioop.ratecv(pcm_8k, 2, 1, 8000, 16000, None)[0]
+        except Exception:
+            return pcm_8k
+
+
+def _resample_pcm_16k_to_8k(pcm_16k: bytes) -> bytes:
+    """Downsample 16kHz 16-bit linear PCM to 8kHz for Exotel telephony stream."""
+    if not pcm_16k:
+        return b""
+    try:
+        samples = np.frombuffer(pcm_16k, dtype=np.int16)
+        return samples[::2].tobytes()
+    except Exception:
+        try:
+            return audioop.ratecv(pcm_16k, 2, 1, 16000, 8000, None)[0]
+        except Exception:
+            return pcm_16k
+
+
+def _calculate_pcm_rms(pcm_bytes: bytes) -> float:
+    """Calculate RMS energy of 16-bit linear PCM chunk for voice activity detection."""
+    if not pcm_bytes:
+        return 0.0
+    try:
+        samples = np.frombuffer(pcm_bytes, dtype=np.int16)
+        if len(samples) == 0:
+            return 0.0
+        return float(np.sqrt(np.mean(samples.astype(np.float64) ** 2)))
+    except Exception:
+        return 0.0
+
+
 def _wav_to_mulaw_payload(wav_bytes: bytes) -> str:
-    """Convert WAV audio bytes (16-bit PCM) into 8kHz mulaw base64 for telephony streaming."""
+    """Convert WAV audio bytes (16-bit PCM) into 8kHz mulaw base64 for Twilio streaming."""
     try:
         with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
             framerate = wf.getframerate()
@@ -28,74 +116,59 @@ def _mulaw_to_pcm16k(mulaw_bytes: bytes) -> bytes:
     """Convert 8kHz mulaw audio bytes from telephony stream into 16kHz linear PCM for Sarvam STT."""
     try:
         pcm_8k = audioop.ulaw2lin(mulaw_bytes, 2)
-        pcm_16k, _ = audioop.ratecv(pcm_8k, 2, 1, 8000, 16000, None)
-        return pcm_16k
+        return _resample_pcm_8k_to_16k(pcm_8k)
     except Exception as e:
         logger.warning(f"Mulaw to PCM conversion failed: {e}")
         return b""
 
 
 async def _synthesize_audio(text: str, language: str = "en-IN") -> bytes:
-    """Synthesize text to WAV audio using Sarvam TTS."""
+    """Synthesize text to audio using Sarvam Bulbul TTS (in-memory)."""
     def run_synth() -> bytes:
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
-            path = tf.name
         try:
-            tts.synthesize(text, language, path)
-            with open(path, "rb") as f:
-                return f.read()
+            return tts.synthesize_bytes(text, language_code=language, sample_rate=16000, codec="wav")
         except Exception as e:
             logger.warning(f"TTS synthesis exception: {e}")
             return b""
-        finally:
-            try:
-                os.unlink(path)
-            except Exception:
-                pass
     return await asyncio.to_thread(run_synth)
 
 
-async def _transcribe_pcm(pcm_16k: bytes) -> str:
-    """Transcribe 16kHz linear PCM audio buffer."""
-    def run_stt() -> str:
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
-            path = tf.name
+async def _synthesize_audio_pcm(text: str, language: str = "en-IN", sample_rate: int = 8000) -> bytes:
+    """Synthesize text to raw 16-bit linear PCM bytes (s16le) for Exotel using Sarvam Bulbul."""
+    def run_synth() -> bytes:
         try:
-            with wave.open(path, "wb") as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(2)
-                wf.setframerate(16000)
-                wf.writeframes(pcm_16k)
-            result = stt.transcribe(path)
-            return result.get("text", "")
+            return tts.synthesize_bytes(text, language_code=language, sample_rate=sample_rate, codec="linear16")
+        except Exception as e:
+            logger.warning(f"TTS linear16 synthesis error: {e}")
+            return b""
+    return await asyncio.to_thread(run_synth)
+
+
+async def _synthesize_audio_mulaw(text: str, language: str = "en-IN") -> str:
+    """Synthesize text to 8kHz mulaw base64 payload for Twilio using Sarvam Bulbul."""
+    def run_synth() -> str:
+        try:
+            mulaw_bytes = tts.synthesize_bytes(text, language_code=language, sample_rate=8000, codec="mulaw")
+            if mulaw_bytes:
+                return base64.b64encode(mulaw_bytes).decode("ascii")
+            return ""
+        except Exception as e:
+            logger.warning(f"TTS mulaw synthesis error: {e}")
+            return ""
+    return await asyncio.to_thread(run_synth)
+
+
+async def _transcribe_pcm(pcm_16k: bytes, language: str = "unknown") -> tuple[str, str]:
+    """Transcribe 16kHz linear PCM buffer using Sarvam Saaras STT (in-memory)."""
+    def run_stt() -> tuple[str, str]:
+        try:
+            res = stt.transcribe_pcm(pcm_16k, sample_rate=16000, language_code=language)
+            return res.get("text", ""), res.get("language", language)
         except Exception as e:
             logger.warning(f"STT transcribe exception: {e}")
-            return ""
-        finally:
-            try:
-                os.unlink(path)
-            except Exception:
-                pass
+            return "", language
     return await asyncio.to_thread(run_stt)
 
-import audioop
-import io
-import wave
-from fastapi import Request
-from backend.telephony import (
-    CallRequest,
-    CallResult,
-    get_provider,
-    get_telephony_status,
-    initiate_outbound_call,
-    process_webhook,
-    validate_phone_number,
-)
-from backend.crm import (
-    update_outbound_call_status,
-    get_outbound_calls,
-    save_outbound_call,
-)
 
 """FastAPI application for AI Autonomous Lead Generation Engine."""
 
@@ -106,6 +179,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 import tempfile
 from typing import Any
 from uuid import uuid4
@@ -141,7 +215,9 @@ from backend.crm import (
     get_campaign_contacts,
     get_leads,
     get_lead_by_id,
+    get_lead_by_phone,
     create_lead,
+    create_or_update_lead,
     export_leads,
     get_appointments,
     create_appointment,
@@ -1137,35 +1213,478 @@ async def call_completion_webhook(request: Request) -> dict[str, str]:
     return {"status": "completed"}
 
 
-@app.websocket("/ws/telephony/stream")
-async def telephony_media_stream(websocket: WebSocket) -> None:
-    """Bidirectional WebSocket audio stream for live telephony calls (Twilio / Exotel Stream)."""
+@app.api_route("/api/telephony/exotel/voicebot-endpoint", methods=["GET", "POST"])
+async def exotel_voicebot_endpoint(request: Request) -> dict[str, str]:
+    """Exotel Voicebot Applet Dynamic URL Resolution Endpoint.
+    
+    When an Exotel call flow enters a Voicebot Applet with dynamic URL routing,
+    Exotel hits this endpoint. We return the target wss:// URL for Exotel AgentStream
+    enriched with inbound call metadata (CallSid, Caller phone, and Lead ID).
+    """
+    params = dict(request.query_params)
+    if request.method == "POST":
+        content_type = request.headers.get("content-type", "").lower()
+        if "form" in content_type:
+            try:
+                form = await request.form()
+                params.update(dict(form))
+            except Exception:
+                pass
+        elif "json" in content_type:
+            try:
+                json_data = await request.json()
+                if isinstance(json_data, dict):
+                    params.update(json_data)
+            except Exception:
+                pass
+
+    call_sid = params.get("CallSid") or params.get("Sid") or params.get("call_sid") or ""
+    caller_phone = params.get("From") or params.get("CallFrom") or params.get("from") or ""
+    to_phone = params.get("To") or params.get("CallTo") or params.get("to") or ""
+    direction = params.get("Direction") or params.get("direction") or "inbound"
+
+    lead_id = None
+    customer_name = "there"
+    if caller_phone:
+        try:
+            normalized_caller = validate_phone_number(caller_phone)
+        except Exception:
+            normalized_caller = caller_phone
+
+        lead = get_lead_by_phone(normalized_caller) or get_lead_by_phone(caller_phone)
+        if lead:
+            lead_id = lead.id
+            customer_name = lead.name
+        else:
+            clean_digits = re.sub(r"[^\d]", "", caller_phone)
+            suffix = clean_digits[-4:] if len(clean_digits) >= 4 else "New"
+            lead = create_or_update_lead(
+                name=f"Inbound Caller ({suffix})",
+                phone_number=normalized_caller,
+                interest_status="Inquiry",
+                summary=f"Inbound call received on ExoPhone {to_phone}",
+            )
+            lead_id = lead.id
+            customer_name = lead.name
+
+        if call_sid:
+            calls = get_outbound_calls()
+            matched = [c for c in calls if c.provider_call_id == call_sid]
+            if not matched:
+                save_outbound_call(
+                    lead_id=lead_id,
+                    phone_number=normalized_caller,
+                    provider_call_id=call_sid,
+                    status="ringing",
+                    message=f"Inbound call from {normalized_caller} to ExoPhone {to_phone}",
+                    provider="exotel",
+                )
+
+    public_url = os.getenv("AGENTSTREAM_PUBLIC_URL") or os.getenv("PUBLIC_BASE_URL") or ""
+    host = request.headers.get("host", "127.0.0.1:8000")
+
+    if public_url:
+        ws_base = public_url.replace("https://", "wss://").replace("http://", "ws://").rstrip("/")
+    else:
+        scheme = "wss" if request.url.scheme == "https" else "ws"
+        ws_base = f"{scheme}://{host}"
+
+    query_parts = []
+    if call_sid:
+        query_parts.append(f"call_sid={call_sid}")
+    if caller_phone:
+        query_parts.append(f"from={caller_phone}")
+    if lead_id:
+        query_parts.append(f"lead_id={lead_id}")
+    query_parts.append("direction=inbound")
+
+    qs = ("?" + "&".join(query_parts)) if query_parts else ""
+    ws_url = f"{ws_base}/ws/telephony/exotel/stream{qs}"
+    logger.info(f"Exotel Voicebot Dynamic Endpoint queried (CallSid: {call_sid}, Caller: {caller_phone}); responding with WebSocket URL: {ws_url}")
+    return {
+        "url": ws_url,
+        "Url": ws_url,
+        "URL": ws_url,
+        "stream_url": ws_url,
+        "websocket_url": ws_url,
+    }
+
+
+@app.api_route("/api/telephony/exotel/passthru", methods=["GET", "POST"])
+@app.api_route("/api/telephony/webhook/exotel/inbound", methods=["GET", "POST"])
+async def exotel_passthru_endpoint(request: Request) -> Response:
+    """Exotel Passthru Applet endpoint for logging and preparing inbound calls before voicebot."""
+    params = dict(request.query_params)
+    if request.method == "POST":
+        content_type = request.headers.get("content-type", "").lower()
+        if "form" in content_type:
+            try:
+                form = await request.form()
+                params.update(dict(form))
+            except Exception:
+                pass
+        elif "json" in content_type:
+            try:
+                json_data = await request.json()
+                if isinstance(json_data, dict):
+                    params.update(json_data)
+            except Exception:
+                pass
+
+    call_sid = params.get("CallSid") or params.get("Sid") or ""
+    caller_phone = params.get("From") or params.get("CallFrom") or ""
+    to_phone = params.get("To") or params.get("CallTo") or ""
+
+    if caller_phone:
+        try:
+            normalized_caller = validate_phone_number(caller_phone)
+        except Exception:
+            normalized_caller = caller_phone
+
+        lead = get_lead_by_phone(normalized_caller) or get_lead_by_phone(caller_phone)
+        if not lead:
+            clean_digits = re.sub(r"[^\d]", "", caller_phone)
+            suffix = clean_digits[-4:] if len(clean_digits) >= 4 else "New"
+            lead = create_or_update_lead(
+                name=f"Inbound Caller ({suffix})",
+                phone_number=normalized_caller,
+                interest_status="Inquiry",
+                summary=f"Inbound passthru call to ExoPhone {to_phone}",
+            )
+
+        if call_sid:
+            calls = get_outbound_calls()
+            matched = [c for c in calls if c.provider_call_id == call_sid]
+            if not matched:
+                save_outbound_call(
+                    lead_id=lead.id,
+                    phone_number=normalized_caller,
+                    provider_call_id=call_sid,
+                    status="ringing",
+                    message=f"Inbound passthru call from {normalized_caller}",
+                    provider="exotel",
+                )
+
+    return Response(content="OK", media_type="text/plain")
+
+
+@app.api_route("/api/telephony/twilio/inbound", methods=["GET", "POST"])
+@app.api_route("/api/telephony/inbound", methods=["GET", "POST"])
+async def twilio_inbound_voice(request: Request) -> Response:
+    """Twilio Inbound Voice Webhook returning TwiML stream instruction."""
+    params = dict(request.query_params)
+    if request.method == "POST":
+        content_type = request.headers.get("content-type", "").lower()
+        if "form" in content_type:
+            try:
+                form = await request.form()
+                params.update(dict(form))
+            except Exception:
+                pass
+        elif "json" in content_type:
+            try:
+                json_data = await request.json()
+                if isinstance(json_data, dict):
+                    params.update(json_data)
+            except Exception:
+                pass
+
+    call_sid = params.get("CallSid") or f"twilio_in_{uuid4().hex[:8]}"
+    caller = params.get("From", "")
+    to_num = params.get("To", "")
+
+    lead_id = None
+    customer_name = "there"
+    if caller:
+        try:
+            norm_caller = validate_phone_number(caller)
+        except Exception:
+            norm_caller = caller
+
+        lead = get_lead_by_phone(norm_caller) or get_lead_by_phone(caller)
+        if lead:
+            lead_id = lead.id
+            customer_name = lead.name
+        else:
+            clean_digits = re.sub(r"[^\d]", "", caller)
+            suffix = clean_digits[-4:] if len(clean_digits) >= 4 else "New"
+            lead = create_or_update_lead(
+                name=f"Inbound Caller ({suffix})",
+                phone_number=norm_caller,
+                interest_status="Inquiry",
+                summary=f"Inbound Twilio call to {to_num}",
+            )
+            lead_id = lead.id
+            customer_name = lead.name
+
+        save_outbound_call(
+            lead_id=lead_id,
+            phone_number=norm_caller,
+            provider_call_id=call_sid,
+            status="ringing",
+            message=f"Inbound Twilio call from {norm_caller}",
+            provider="twilio",
+        )
+
+    public_url = os.getenv("PUBLIC_BASE_URL") or os.getenv("AGENTSTREAM_PUBLIC_URL") or ""
+    host = request.headers.get("host", "127.0.0.1:8000")
+    if public_url:
+        ws_base = public_url.replace("https://", "wss://").replace("http://", "ws://").rstrip("/")
+    else:
+        scheme = "wss" if request.url.scheme == "https" else "ws"
+        ws_base = f"{scheme}://{host}"
+
+    ws_url = f"{ws_base}/ws/telephony/stream"
+
+    twiml = (
+        f'<?xml version="1.0" encoding="UTF-8"?>\n'
+        f'<Response>\n'
+        f'    <Connect>\n'
+        f'        <Stream url="{ws_url}">\n'
+        f'            <Parameter name="call_sid" value="{call_sid}" />\n'
+        f'            <Parameter name="caller" value="{caller}" />\n'
+        f'            <Parameter name="direction" value="inbound" />\n'
+        f'            <Parameter name="lead_id" value="{lead_id or 0}" />\n'
+        f'            <Parameter name="customer_name" value="{customer_name}" />\n'
+        f'        </Stream>\n'
+        f'    </Connect>\n'
+        f'</Response>'
+    )
+    return Response(content=twiml, media_type="application/xml")
+
+
+class SimulateInboundCallRequest(BaseModel):
+    caller_phone: str = "+919876543210"
+    customer_name: str | None = None
+    customer_speech: str = "Hi, I am looking for a 2 BHK apartment near Hinjawadi under 80 lakhs."
+    language: str = "en-IN"
+
+
+@app.post("/api/telephony/inbound/simulate")
+def simulate_inbound_call(req: SimulateInboundCallRequest) -> dict[str, Any]:
+    """Simulate an end-to-end inbound customer phone call into the AI voice agent."""
+    caller = validate_phone_number(req.caller_phone)
+    lead = get_lead_by_phone(caller)
+    if not lead:
+        clean_digits = re.sub(r"[^\d]", "", caller)
+        suffix = clean_digits[-4:] if len(clean_digits) >= 4 else "New"
+        lead = create_or_update_lead(
+            name=req.customer_name or f"Inbound Lead ({suffix})",
+            phone_number=caller,
+            interest_status="Inquiry",
+            summary="Simulated inbound call enquiry",
+        )
+
+    call_sid = f"mock-inbound-{uuid4().hex[:8]}"
+    save_outbound_call(
+        lead_id=lead.id,
+        phone_number=caller,
+        provider_call_id=call_sid,
+        status="in_progress",
+        message="Simulated inbound call",
+        provider="mock",
+    )
+
+    session = conversation_manager.get_or_create_session(
+        session_id=call_sid,
+        lead_id=lead.id,
+        customer_name=lead.name,
+        language=req.language,
+    )
+    greeting = conversation_manager.generate_opening_greeting(session, is_inbound=True)
+    reply, intent, facts = conversation_manager.process_turn(call_sid, req.customer_speech)
+
+    transcript = f"Agent: {greeting}\nCustomer: {req.customer_speech}\nAgent: {reply}"
+    analysis = analyze_conversation(transcript, lead.name)
+
+    create_or_update_lead(
+        name=lead.name,
+        phone_number=caller,
+        interest_status=analysis["category"],
+        score=analysis["score"],
+        summary=analysis["summary"],
+        extracted_requirements=analysis["requirements"],
+        evidence=analysis["evidence"],
+        next_action=analysis["next_action"],
+    )
+    call_summary = save_call(
+        lead_id=lead.id,
+        transcript=transcript,
+        agent_response=reply,
+        interest_status=analysis["category"],
+        call_mode="telephony_inbound",
+        call_duration_seconds=35,
+    )
+    update_outbound_call_status(call_sid, "completed", duration_seconds=35)
+
+    return {
+        "status": "completed",
+        "call_sid": call_sid,
+        "caller": caller,
+        "lead_id": lead.id,
+        "lead_name": lead.name,
+        "greeting": greeting,
+        "agent_reply": reply,
+        "intent": intent,
+        "analysis": analysis,
+        "call_summary_id": call_summary.id,
+    }
+
+
+async def _handle_telephony_media_stream(websocket: WebSocket, provider_hint: str = "auto") -> None:
+    """Unified Bidirectional WebSocket Audio Stream for Exotel AgentStream and Twilio Media Streams."""
     await websocket.accept()
+    ws_query = dict(websocket.query_params)
+    ws_call_sid = ws_query.get("call_sid") or ws_query.get("CallSid")
+    ws_caller = ws_query.get("from") or ws_query.get("From") or ws_query.get("caller") or ws_query.get("CallFrom")
+    ws_direction = ws_query.get("direction") or ws_query.get("Direction")
+    ws_lead_id = int(ws_query["lead_id"]) if ws_query.get("lead_id") and ws_query["lead_id"].isdigit() else None
+
     stream_sid = None
     call_sid = None
     lead_id = None
     campaign_id = None
     customer_name = "there"
+    caller_phone = ""
+    is_inbound = False
     session_id = str(uuid4())
     transcript_parts: list[str] = []
-    audio_buffer = bytearray()
+    speech_buffer = bytearray()
+    silence_frames = 0
+    start_time = datetime.now(timezone.utc)
+    is_exotel = (provider_hint == "exotel")
 
     try:
         async for message_text in websocket.iter_text():
-            msg = json.loads(message_text)
+            try:
+                msg = json.loads(message_text)
+            except Exception:
+                continue
+
             event = msg.get("event")
 
             if event == "connected":
-                logger.info("Telephony audio stream connected")
+                logger.info(f"Telephony audio stream connected (provider hint: {provider_hint})")
 
             elif event == "start":
                 start_data = msg.get("start", {})
-                stream_sid = start_data.get("streamSid")
-                call_sid = start_data.get("callSid")
-                custom_params = start_data.get("customParameters", {})
-                lead_id = int(custom_params.get("lead_id")) if custom_params.get("lead_id") else None
+                stream_sid = (
+                    start_data.get("stream_sid")
+                    or start_data.get("streamSid")
+                    or msg.get("stream_sid")
+                    or msg.get("streamSid")
+                )
+                call_sid = (
+                    start_data.get("call_sid")
+                    or start_data.get("callSid")
+                    or start_data.get("CallSid")
+                    or msg.get("call_sid")
+                    or ws_call_sid
+                    or f"call_{uuid4().hex[:12]}"
+                )
+
+                custom_params = start_data.get("custom_parameters") or start_data.get("customParameters") or {}
+                if not custom_params and "CustomField" in start_data:
+                    try:
+                        custom_params = json.loads(start_data["CustomField"])
+                    except Exception:
+                        pass
+
+                lead_id = int(custom_params.get("lead_id")) if custom_params.get("lead_id") else ws_lead_id
                 campaign_id = int(custom_params.get("campaign_id")) if custom_params.get("campaign_id") else None
-                customer_name = custom_params.get("customer_name") or "there"
+                customer_name = custom_params.get("customer_name") or ""
+
+                # Check format to confirm Exotel vs Twilio
+                media_format = start_data.get("media_format") or start_data.get("mediaFormat") or {}
+                encoding = str(media_format.get("encoding", "")).lower()
+                fmt = str(media_format.get("format", "")).lower()
+                if "raw" in encoding or "s16le" in fmt or "stream_sid" in msg or provider_hint == "exotel":
+                    is_exotel = True
+                else:
+                    is_exotel = False
+
+                # Extract caller phone number from Exotel / Twilio / query params
+                caller_phone = (
+                    start_data.get("from")
+                    or start_data.get("From")
+                    or start_data.get("call_from")
+                    or start_data.get("CallFrom")
+                    or custom_params.get("caller")
+                    or custom_params.get("from")
+                    or custom_params.get("From")
+                    or ws_caller
+                    or ""
+                )
+                if caller_phone:
+                    try:
+                        caller_phone = validate_phone_number(caller_phone)
+                    except Exception:
+                        pass
+
+                # Determine direction: Inbound vs Outbound
+                direction_str = (
+                    start_data.get("direction")
+                    or custom_params.get("direction")
+                    or ws_direction
+                    or ""
+                ).lower()
+
+                matched_call = None
+                if call_sid:
+                    calls = get_outbound_calls()
+                    matched = [c for c in calls if c.provider_call_id == call_sid]
+                    if matched:
+                        matched_call = matched[0]
+                        if not lead_id:
+                            lead_id = matched_call.lead_id
+                            campaign_id = matched_call.campaign_id or campaign_id
+                        if not caller_phone and matched_call.phone_number:
+                            caller_phone = matched_call.phone_number
+
+                is_inbound = (
+                    direction_str in ("inbound", "incoming")
+                    or (matched_call is not None and matched_call.message and "inbound" in matched_call.message.lower())
+                    or (matched_call is None and not campaign_id)
+                )
+
+                # For inbound calls, resolve or create the lead in CRM
+                if is_inbound:
+                    if caller_phone:
+                        existing_lead = get_lead_by_phone(caller_phone)
+                        if existing_lead:
+                            lead_id = existing_lead.id
+                            if not customer_name or customer_name == "there":
+                                customer_name = existing_lead.name
+                        elif not lead_id:
+                            clean_suffix = caller_phone[-4:] if len(caller_phone) >= 4 else "New"
+                            new_lead = create_or_update_lead(
+                                name=customer_name if customer_name and customer_name != "there" else f"Inbound Caller ({clean_suffix})",
+                                phone_number=caller_phone,
+                                interest_status="Inquiry",
+                                summary="Incoming telephone enquiry",
+                            )
+                            lead_id = new_lead.id
+                            customer_name = new_lead.name
+                    elif not lead_id:
+                        new_lead = create_or_update_lead(
+                            name="Inbound Caller",
+                            phone_number=f"+910000{uuid4().hex[:6]}",
+                            interest_status="Inquiry",
+                            summary="Incoming telephone enquiry (Caller ID hidden)",
+                        )
+                        lead_id = new_lead.id
+                        customer_name = new_lead.name
+
+                    if not matched_call:
+                        save_outbound_call(
+                            lead_id=lead_id,
+                            phone_number=caller_phone or "unknown",
+                            provider_call_id=call_sid,
+                            status="in_progress",
+                            message=f"Inbound call from {caller_phone or 'caller'}",
+                            provider="exotel" if is_exotel else "twilio",
+                            campaign_id=campaign_id,
+                        )
 
                 if call_sid:
                     update_outbound_call_status(call_sid, "in_progress")
@@ -1174,99 +1693,173 @@ async def telephony_media_stream(websocket: WebSocket) -> None:
                 session = conversation_manager.get_or_create_session(
                     session_id=session_id,
                     lead_id=lead_id,
-                    customer_name=customer_name,
+                    customer_name=customer_name or "there",
                 )
-                opening = conversation_manager.generate_opening_greeting(session)
+                opening = conversation_manager.generate_opening_greeting(session, is_inbound=is_inbound)
                 transcript_parts.append(f"Agent: {opening}")
 
-                # Send AI opening greeting as audio to caller!
-                audio_wav = await _synthesize_audio(opening, session.language)
-                if audio_wav and stream_sid:
-                    mulaw_payload = _wav_to_mulaw_payload(audio_wav)
-                    if mulaw_payload:
+                # Synthesize and send opening greeting to caller
+                if is_exotel:
+                    opening_pcm = await _synthesize_audio_pcm(opening, session.language, sample_rate=8000)
+                    if opening_pcm and stream_sid:
+                        # Stream in 100ms chunks (1600 bytes at 8kHz 16-bit mono)
+                        for i in range(0, len(opening_pcm), 1600):
+                            chunk = opening_pcm[i:i + 1600]
+                            await websocket.send_json({
+                                "event": "media",
+                                "stream_sid": stream_sid,
+                                "media": {"payload": base64.b64encode(chunk).decode("ascii")},
+                            })
+                            await asyncio.sleep(0.01)
+                else:
+                    opening_mulaw = await _synthesize_audio_mulaw(opening, session.language)
+                    if opening_mulaw and stream_sid:
                         await websocket.send_json({
                             "event": "media",
                             "streamSid": stream_sid,
-                            "media": {"payload": mulaw_payload},
+                            "media": {"payload": opening_mulaw},
                         })
 
             elif event == "media":
                 media_data = msg.get("media", {})
                 payload = media_data.get("payload", "")
-                if payload:
-                    try:
-                        mulaw_bytes = base64.b64decode(payload)
-                        audio_buffer.extend(mulaw_bytes)
-                    except Exception:
-                        pass
+                if not payload:
+                    continue
 
-                    # Process audio buffer chunks (~1.5s of speech = 12000 bytes at 8kHz)
-                    if len(audio_buffer) >= 12000:
-                        pcm_16k = _mulaw_to_pcm16k(bytes(audio_buffer))
-                        audio_buffer.clear()
+                try:
+                    raw_bytes = base64.b64decode(payload)
+                except Exception:
+                    continue
 
-                        transcribed = await _transcribe_pcm(pcm_16k)
-                        if transcribed and len(transcribed.strip()) >= 2:
-                            transcript_parts.append(f"Customer: {transcribed}")
+                # Convert incoming chunk to 16kHz linear PCM for Sarvam Saaras STT
+                if is_exotel:
+                    # Exotel streams raw 16-bit linear PCM (s16le) at 8kHz
+                    pcm_16k_chunk = _resample_pcm_8k_to_16k(raw_bytes)
+                else:
+                    # Twilio streams 8kHz mulaw
+                    pcm_16k_chunk = _mulaw_to_pcm16k(raw_bytes)
 
-                            # Interruption handling: clear phone playback buffer
-                            if stream_sid:
-                                await websocket.send_json({"event": "clear", "streamSid": stream_sid})
+                # Voice Activity Detection (RMS energy calculation)
+                rms = _calculate_pcm_rms(pcm_16k_chunk)
 
-                            # Generate intelligent AI response in customer's language
+                if rms > 300.0:
+                    # Caller is speaking! Barge-in / interruption: flush unplayed bot audio
+                    if stream_sid and len(speech_buffer) == 0:
+                        sid_key = "stream_sid" if is_exotel else "streamSid"
+                        await websocket.send_json({"event": "clear", sid_key: stream_sid})
+
+                    speech_buffer.extend(pcm_16k_chunk)
+                    silence_frames = 0
+                else:
+                    # Silence detected
+                    if len(speech_buffer) >= 6400:  # ~200ms of user speech already collected
+                        silence_frames += 1
+                        # If silence persists for ~400ms (approx 4 chunks), user finished their thought
+                        if silence_frames >= 4:
+                            buffered_pcm = bytes(speech_buffer)
+                            speech_buffer.clear()
+                            silence_frames = 0
+
                             session = conversation_manager.get_or_create_session(session_id)
-                            reply_text, intent, facts = conversation_manager.process_turn(session_id, transcribed)
-                            transcript_parts.append(f"Agent: {reply_text}")
+                            transcribed, _ = await _transcribe_pcm(buffered_pcm, session.language)
 
-                            # Synthesize and stream AI voice response to the caller
-                            reply_wav = await _synthesize_audio(reply_text, session.language)
-                            if reply_wav and stream_sid:
-                                mulaw_resp = _wav_to_mulaw_payload(reply_wav)
-                                if mulaw_resp:
-                                    await websocket.send_json({
-                                        "event": "media",
-                                        "streamSid": stream_sid,
-                                        "media": {"payload": mulaw_resp},
-                                    })
+                            if transcribed and len(transcribed.strip()) >= 2:
+                                transcript_parts.append(f"Customer: {transcribed}")
+
+                                # Process turn through conversation engine
+                                reply_text, intent, facts = conversation_manager.process_turn(session_id, transcribed)
+                                transcript_parts.append(f"Agent: {reply_text}")
+
+                                # Synthesize and stream AI voice response
+                                if is_exotel:
+                                    reply_pcm = await _synthesize_audio_pcm(reply_text, session.language, sample_rate=8000)
+                                    if reply_pcm and stream_sid:
+                                        for i in range(0, len(reply_pcm), 1600):
+                                            chunk = reply_pcm[i:i + 1600]
+                                            await websocket.send_json({
+                                                "event": "media",
+                                                "stream_sid": stream_sid,
+                                                "media": {"payload": base64.b64encode(chunk).decode("ascii")},
+                                            })
+                                            await asyncio.sleep(0.01)
+                                else:
+                                    reply_mulaw = await _synthesize_audio_mulaw(reply_text, session.language)
+                                    if reply_mulaw and stream_sid:
+                                        await websocket.send_json({
+                                            "event": "media",
+                                            "streamSid": stream_sid,
+                                            "media": {"payload": reply_mulaw},
+                                        })
 
             elif event == "stop":
                 logger.info(f"Telephony stream ended for CallSid: {call_sid}")
                 if call_sid:
-                    update_outbound_call_status(call_sid, "completed")
+                    duration = int((datetime.now(timezone.utc) - start_time).total_seconds())
+                    update_outbound_call_status(call_sid, "completed", duration_seconds=duration)
                 break
 
     except WebSocketDisconnect:
-        logger.info("Telephony stream WebSocket disconnected")
+        logger.info(f"Telephony stream WebSocket disconnected (CallSid: {call_sid})")
     except Exception as e:
-        logger.exception(f"Telephony stream error: {e}")
+        logger.exception(f"Telephony stream processing error: {e}")
     finally:
+        duration = int((datetime.now(timezone.utc) - start_time).total_seconds())
+        if call_sid:
+            update_outbound_call_status(call_sid, "completed", duration_seconds=duration)
+
         # Save transcript & post-call intelligence
-        if transcript_parts and lead_id:
+        if transcript_parts:
             full_transcript = chr(10).join(transcript_parts)
             analysis = analyze_conversation(full_transcript, customer_name)
-            create_or_update_lead(
-                name=customer_name,
-                phone_number="",
-                interest_status=analysis["category"],
-                score=analysis["score"],
-                summary=analysis["summary"],
-                extracted_requirements=analysis["requirements"],
-                evidence=analysis["evidence"],
-                next_action=analysis["next_action"],
-                campaign_id=campaign_id,
-            )
-            save_call(
-                lead_id=lead_id,
-                transcript=full_transcript,
-                agent_response=analysis["next_action"],
-                interest_status=analysis["category"],
-                campaign_id=campaign_id,
-                call_mode="telephony_live",
-            )
-            if analysis["requirements"].get("site_visit_interest"):
-                validate_and_book_appointment(
-                    lead_id=lead_id,
-                    requested_date_raw=analysis["requirements"].get("preferred_meeting_date", "Saturday"),
-                    requested_time_raw=analysis["requirements"].get("preferred_meeting_time", "11:00 AM"),
+
+            target_phone = caller_phone
+            if not target_phone and lead_id:
+                lead_obj = get_lead_by_id(lead_id)
+                if lead_obj and lead_obj.phone_number:
+                    target_phone = lead_obj.phone_number
+
+            if lead_id and target_phone:
+                create_or_update_lead(
+                    name=customer_name if customer_name and customer_name != "there" else f"Caller ({target_phone[-4:] if len(target_phone) >= 4 else 'New'})",
+                    phone_number=target_phone,
+                    interest_status=analysis["category"],
+                    score=analysis["score"],
+                    summary=analysis["summary"],
+                    extracted_requirements=analysis["requirements"],
+                    evidence=analysis["evidence"],
+                    next_action=analysis["next_action"],
                     campaign_id=campaign_id,
                 )
+            if lead_id:
+                save_call(
+                    lead_id=lead_id,
+                    transcript=full_transcript,
+                    agent_response=analysis["next_action"],
+                    interest_status=analysis["category"],
+                    campaign_id=campaign_id,
+                    call_mode="telephony_inbound" if is_inbound else "telephony_live",
+                    call_duration_seconds=duration,
+                )
+                if analysis["requirements"].get("site_visit_interest"):
+                    validate_and_book_appointment(
+                        lead_id=lead_id,
+                        requested_date_raw=analysis["requirements"].get("preferred_meeting_date", "Saturday"),
+                        requested_time_raw=analysis["requirements"].get("preferred_meeting_time", "11:00 AM"),
+                        campaign_id=campaign_id,
+                    )
+                if analysis["category"] == "Do Not Call":
+                    if target_phone:
+                        add_dnd_entry(target_phone, f"Customer opt-out in call {call_sid}")
+
+
+@app.websocket("/ws/telephony/exotel/stream")
+async def exotel_telephony_media_stream(websocket: WebSocket) -> None:
+    """Dedicated Exotel AgentStream WebSocket endpoint for real-time 16-bit linear PCM audio."""
+    await _handle_telephony_media_stream(websocket, provider_hint="exotel")
+
+
+@app.websocket("/ws/telephony/stream")
+async def telephony_media_stream(websocket: WebSocket) -> None:
+    """Dual-carrier WebSocket audio stream supporting Exotel AgentStream and Twilio Media Streams."""
+    await _handle_telephony_media_stream(websocket, provider_hint="auto")
+

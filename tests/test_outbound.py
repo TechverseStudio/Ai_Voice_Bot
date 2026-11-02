@@ -12,7 +12,8 @@ def test_reject_invalid_phone_number():
         validate_phone_number("not-a-number")
 
 
-def test_mock_call():
+def test_mock_call(monkeypatch):
+    monkeypatch.setenv("TELEPHONY_PROVIDER", "mock")
     result = initiate_call(CallRequest("+919999999999", 1))
     assert result.status == "simulated_accepted"
     assert result.provider_call_id.startswith("mock-")

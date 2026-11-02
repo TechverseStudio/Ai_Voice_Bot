@@ -39,7 +39,7 @@ from uuid import uuid4
 from dotenv import load_dotenv
 from sarvamai import SarvamAI
 
-from backend.config import SARVAM_API_KEY
+from backend.config import SARVAM_API_KEY, SARVAM_FALLBACK_API_KEY
 from backend.crm import KnowledgeBase
 
 logger = logging.getLogger(__name__)
@@ -86,11 +86,17 @@ class ConversationManager:
         self.knowledge = KnowledgeBase()
         self.sessions: dict[str, ConversationSession] = {}
         self.llm_client = None
+        self.fallback_llm_client = None
         if SARVAM_API_KEY:
             try:
                 self.llm_client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
             except Exception as e:
                 logger.warning(f"Could not initialize Sarvam LLM client: {e}")
+        if SARVAM_FALLBACK_API_KEY:
+            try:
+                self.fallback_llm_client = SarvamAI(api_subscription_key=SARVAM_FALLBACK_API_KEY)
+            except Exception as e:
+                logger.warning(f"Could not initialize Sarvam fallback LLM client: {e}")
 
     def get_or_create_session(
         self,
@@ -114,31 +120,48 @@ class ConversationManager:
         self.sessions[new_id] = session
         return session
 
-    def generate_opening_greeting(self, session: ConversationSession) -> str:
+    def generate_opening_greeting(self, session: ConversationSession, is_inbound: bool = False) -> str:
         """Generate a natural professional sales opening greeting introducing as AI assistant."""
         name_str = f" {session.customer_name}" if session.customer_name and session.customer_name != "there" else ""
 
         agent_label = session.agent_name or "Priya"
         company_name = session.project_name.split(' - ')[0] if ' - ' in session.project_name else session.project_name
 
-        if session.language == "mr-IN":
-            greeting = (
-                f"नमस्कार{name_str}! मी {agent_label}, {company_name} येथून एआय व्हॉईस असिस्टंट बोलत आहे. "
-                f"हिंजवडी आयटी पार्क जवळ आमच्या नवीन प्रीमियम फ्लॅट्सबद्दल माहिती देण्यासाठी कॉल केला आहे. "
-                f"आपल्याकडे दोन मिनिटे वेळ मिळेल का?"
-            )
-        elif session.language == "hi-IN":
-            greeting = (
-                f"नमस्ते{name_str}! मैं {agent_label}, {company_name} से एआई सेल्स असिस्टेंट बोल रही हूँ। "
-                f"हिंजवडी आईटी पार्क के पास हमारे नए प्रीमियम 1, 2 और 3 बीएचके प्रोजेक्ट की जानकारी के लिए कॉल किया है। "
-                f"क्या आपके पास बात करने के लिए दो मिनट का समय है?"
-            )
+        if is_inbound:
+            if session.language == "mr-IN":
+                greeting = (
+                    f"नमस्कार{name_str}! {company_name} मध्ये कॉल केल्याबद्दल धन्यवाद. मी {agent_label}, आपली एआय प्रॉपर्टी असिस्टंट बोलत आहे. "
+                    f"आज मी आपल्याला नवीन प्रीमियम फ्लॅट्सच्या माहितीसाठी कशी मदत करू शकते?"
+                )
+            elif session.language == "hi-IN":
+                greeting = (
+                    f"नमस्ते{name_str}! {company_name} में कॉल करने के लिए धन्यवाद। मैं {agent_label}, आपकी एआई प्रॉपर्टी कंसल्टेंट बोल रही हूँ। "
+                    f"आज मैं हमारे नए प्रीमियम प्रोजेक्ट के बारे में आपकी क्या सहायता कर सकती हूँ?"
+                )
+            else:
+                greeting = (
+                    f"Hello{name_str}! Thank you for calling {company_name}. I am {agent_label}, your AI property assistant. "
+                    f"How can I help you find your dream home near Hinjawadi IT Park today?"
+                )
         else:
-            greeting = (
-                f"Hello{name_str}! I am {agent_label}, an AI sales assistant representing {company_name}. "
-                f"I am calling regarding your recent enquiry for premium residential homes near Hinjawadi IT Park. "
-                f"Do you have two quick minutes to speak?"
-            )
+            if session.language == "mr-IN":
+                greeting = (
+                    f"नमस्कार{name_str}! मी {agent_label}, {company_name} येथून एआय व्हॉईस असिस्टंट बोलत आहे. "
+                    f"हिंजवडी आयटी पार्क जवळ आमच्या नवीन प्रीमियम फ्लॅट्सबद्दल माहिती देण्यासाठी कॉल केला आहे. "
+                    f"आपल्याकडे दोन मिनिटे वेळ मिळेल का?"
+                )
+            elif session.language == "hi-IN":
+                greeting = (
+                    f"नमस्ते{name_str}! मैं {agent_label}, {company_name} से एआई सेल्स असिस्टेंट बोल रही हूँ। "
+                    f"हिंजवडी आईटी पार्क के पास हमारे नए प्रीमियम 1, 2 और 3 बीएचके प्रोजेक्ट की जानकारी के लिए कॉल किया है। "
+                    f"क्या आपके पास बात करने के लिए दो मिनट का समय है?"
+                )
+            else:
+                greeting = (
+                    f"Hello{name_str}! I am {agent_label}, an AI sales assistant representing {company_name}. "
+                    f"I am calling regarding your recent enquiry for premium residential homes near Hinjawadi IT Park. "
+                    f"Do you have two quick minutes to speak?"
+                )
         session.has_introduced = True
         session.history.append({"role": "assistant", "content": greeting})
         return greeting
@@ -295,15 +318,16 @@ class ConversationManager:
 
     def _generate_llm_response(self, session: ConversationSession, customer_speech: str, intent: str) -> str:
         """Call Sarvam LLM for natural, human-like sales conversation, with robust grounded fallback."""
-        if self.llm_client:
-            try:
-                system_prompt = "You are " + session.agent_name + ", real estate sales specialist for Krishna Property Wakad. Customer: " + session.customer_name + ". Rules: 1-3 spoken sentences. Ask ONE question. Ground in project facts: 1 BHK 48L, 2 BHK 72L, 3 BHK 98L, clubhouse, gym, pool, Wakad Hinjawadi link road. Offer site visit this Saturday 11 AM if interested."
-                messages = [{"role": "system", "content": system_prompt}]
-                # Keep last 6 dialogue turns for context
-                for msg in session.history[-6:]:
-                    messages.append(msg)
+        system_prompt = "You are " + session.agent_name + ", real estate sales specialist for Krishna Property Wakad. Customer: " + session.customer_name + ". Rules: 1-3 spoken sentences. Ask ONE question. Ground in project facts: 1 BHK 48L, 2 BHK 72L, 3 BHK 98L, clubhouse, gym, pool, Wakad Hinjawadi link road. Offer site visit this Saturday 11 AM if interested."
+        messages = [{"role": "system", "content": system_prompt}]
+        for msg in session.history[-6:]:
+            messages.append(msg)
 
-                completion = self.llm_client.chat.completions(
+        for client in [self.llm_client, self.fallback_llm_client]:
+            if not client:
+                continue
+            try:
+                completion = client.chat.completions(
                     model="sarvam-105b-conversations",
                     messages=messages,
                 )
@@ -312,7 +336,7 @@ class ConversationManager:
                     if resp_text:
                         return resp_text
             except Exception as e:
-                logger.warning(f"Sarvam LLM call exception, falling back to rule-grounded generator: {e}")
+                logger.warning(f"Sarvam LLM call exception with client, trying fallback: {e}")
 
         # Grounded Fallback Response Generator
         return self._generate_grounded_fallback(session, intent)

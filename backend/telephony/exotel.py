@@ -1,5 +1,6 @@
 """Exotel Telephony Provider for Outbound AI Phone Calling in India."""
 
+import base64
 import json
 import logging
 import os
@@ -38,10 +39,10 @@ class ExotelProvider(BaseTelephonyProvider):
 
     def is_ready(self) -> tuple[bool, str, list[str]]:
         missing = []
-        account_sid = os.getenv("EXOTEL_ACCOUNT_SID") or EXOTEL_ACCOUNT_SID
-        api_token = os.getenv("EXOTEL_API_TOKEN") or EXOTEL_API_TOKEN
-        caller_id = os.getenv("EXOTEL_CALLER_ID") or EXOTEL_CALLER_ID
-        api_key = os.getenv("EXOTEL_API_KEY") or EXOTEL_API_KEY
+        account_sid = os.environ.get("EXOTEL_ACCOUNT_SID", "").strip()
+        api_token = os.environ.get("EXOTEL_API_TOKEN", "").strip()
+        caller_id = os.environ.get("EXOTEL_CALLER_ID", "").strip()
+        api_key = (os.environ.get("EXOTEL_API_KEY", "") or account_sid).strip()
 
         if not account_sid:
             missing.append("EXOTEL_ACCOUNT_SID")
@@ -52,7 +53,7 @@ class ExotelProvider(BaseTelephonyProvider):
         if not caller_id:
             missing.append("EXOTEL_CALLER_ID")
 
-        base_url = os.getenv("EXOTEL_BASE_URL") or EXOTEL_BASE_URL or "https://api.exotel.com"
+        base_url = os.environ.get("EXOTEL_BASE_URL", "").strip() or "https://api.exotel.com"
 
         if missing:
             return (
@@ -83,38 +84,46 @@ class ExotelProvider(BaseTelephonyProvider):
         base_url = (os.getenv("EXOTEL_BASE_URL") or EXOTEL_BASE_URL or "https://api.exotel.com").rstrip("/")
         api_url = f"{base_url}/v1/Accounts/{account_sid}/Calls/connect.json"
 
-        # Determine flow URL / applet URL
-        agent_url = os.getenv("AGENTSTREAM_PUBLIC_URL") or AGENTSTREAM_PUBLIC_URL or os.getenv("PUBLIC_BASE_URL")
+        # Determine Flow URL / Voicebot Endpoint
+        agent_url = os.getenv("AGENTSTREAM_PUBLIC_URL") or AGENTSTREAM_PUBLIC_URL or os.getenv("PUBLIC_BASE_URL") or ""
         applet_id = os.getenv("EXOTEL_APPLET_ID") or EXOTEL_APPLET_ID
-        flow_url = agent_url
-        if not flow_url and applet_id:
+
+        flow_url = ""
+        if agent_url:
+            flow_url = f"{agent_url.rstrip('/')}/api/telephony/exotel/voicebot-endpoint"
+        elif applet_id:
             flow_url = f"https://my.exotel.com/{account_sid}/exoml/start_voice/{applet_id}"
-        elif not flow_url:
+        else:
             flow_url = f"{base_url}/v1/Accounts/{account_sid}/default_flow"
 
         status_callback = os.getenv("EXOTEL_STATUS_CALLBACK_URL") or EXOTEL_STATUS_CALLBACK_URL or ""
+        if not status_callback and agent_url:
+            status_callback = f"{agent_url.rstrip('/')}/api/telephony/webhook/exotel/status"
 
+        custom_payload = {
+            "lead_id": request.lead_id,
+            "campaign_id": request.campaign_id,
+            "customer_name": request.customer_name,
+            "metadata": request.metadata,
+        }
+
+        # Exotel Voice v1: When connecting customer to an automated URL flow:
+        # 'From' is the customer destination phone number, and 'CallerId' is your virtual ExoPhone.
         form_data = {
-            "From": caller_id,
-            "To": phone,
+            "From": phone,
             "CallerId": caller_id,
             "Url": flow_url,
-            "CustomField": json.dumps({
-                "lead_id": request.lead_id,
-                "campaign_id": request.campaign_id,
-                "customer_name": request.customer_name,
-            }),
+            "CallType": "trans",
+            "CustomField": json.dumps(custom_payload),
         }
+
         if status_callback:
             form_data["StatusCallback"] = status_callback
-            form_data["StatusCallbackEvents[0]"] = "terminal"
-            form_data["StatusCallbackEvents[1]"] = "answered"
-            form_data["StatusCallbackEvents[2]"] = "ringing"
 
         api_key = os.getenv("EXOTEL_API_KEY") or EXOTEL_API_KEY or account_sid
 
         try:
-            logger.info(f"Initiating Exotel call from {caller_id} to {phone} (Account: {EXOTEL_ACCOUNT_SID})")
+            logger.info(f"Initiating Exotel call to {phone} from CallerId {caller_id} (Account: {account_sid})")
             response = httpx.post(
                 api_url,
                 data=form_data,
@@ -148,23 +157,45 @@ class ExotelProvider(BaseTelephonyProvider):
     def terminate_call(self, provider_call_id: str) -> bool:
         if not provider_call_id:
             return False
-        base_url = (EXOTEL_BASE_URL or "https://api.exotel.com").rstrip("/")
-        api_url = f"{base_url}/v1/Accounts/{EXOTEL_ACCOUNT_SID}/Calls/{provider_call_id}.json"
-        api_key = EXOTEL_API_KEY or EXOTEL_ACCOUNT_SID
+        account_sid = os.getenv("EXOTEL_ACCOUNT_SID") or EXOTEL_ACCOUNT_SID
+        api_token = os.getenv("EXOTEL_API_TOKEN") or EXOTEL_API_TOKEN
+        api_key = os.getenv("EXOTEL_API_KEY") or EXOTEL_API_KEY or account_sid
+        base_url = (os.getenv("EXOTEL_BASE_URL") or EXOTEL_BASE_URL or "https://api.exotel.com").rstrip("/")
+        api_url = f"{base_url}/v1/Accounts/{account_sid}/Calls/{provider_call_id}.json"
 
         try:
-            resp = httpx.post(api_url, data={"Status": "completed"}, auth=(api_key, EXOTEL_API_TOKEN), timeout=10.0)
+            resp = httpx.post(api_url, data={"Status": "completed"}, auth=(api_key, api_token), timeout=10.0)
             return resp.status_code in (200, 204)
         except Exception as e:
             logger.warning(f"Failed to hang up Exotel call {provider_call_id}: {e}")
             return False
 
     def verify_webhook_signature(self, headers: dict[str, str], body: bytes) -> bool:
-        # Exotel uses Basic Auth credentials or custom token matching
+        """Verify authenticity of webhook notifications from Exotel (Basic Auth or Token header)."""
         auth_header = headers.get("authorization", "") or headers.get("Authorization", "")
-        if not auth_header and not EXOTEL_API_TOKEN:
+        account_sid = os.getenv("EXOTEL_ACCOUNT_SID") or EXOTEL_ACCOUNT_SID
+        api_token = os.getenv("EXOTEL_API_TOKEN") or EXOTEL_API_TOKEN
+        api_key = os.getenv("EXOTEL_API_KEY") or EXOTEL_API_KEY or account_sid
+
+        # If no credentials configured yet, allow for testing
+        if not api_token:
             return True
-        return True  # Exotel webhook verification
+
+        if auth_header.startswith("Basic "):
+            try:
+                encoded = auth_header.split(" ", 1)[1].strip()
+                decoded = base64.b64decode(encoded).decode("utf-8")
+                user, pwd = decoded.split(":", 1)
+                return (user in (api_key, account_sid)) and (pwd == api_token)
+            except Exception:
+                return False
+
+        # Exotel custom token or pass-through
+        custom_token = headers.get("x-exotel-token", "") or headers.get("x-api-token", "")
+        if custom_token:
+            return custom_token == api_token
+
+        return True
 
     def parse_status_callback(self, payload: dict[str, Any]) -> CallStatusUpdate:
         call_sid = payload.get("CallSid") or payload.get("Sid", "")
@@ -176,6 +207,7 @@ class ExotelProvider(BaseTelephonyProvider):
             "initiated": "initiating",
             "ringing": "ringing",
             "in-progress": "in_progress",
+            "in_progress": "in_progress",
             "completed": "completed",
             "busy": "busy",
             "no-answer": "no_answer",
@@ -195,3 +227,4 @@ class ExotelProvider(BaseTelephonyProvider):
             provider="exotel",
             raw_payload=payload,
         )
+
